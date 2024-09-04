@@ -1,4 +1,4 @@
-﻿using NeuralNetwork.src.Utils;
+﻿ using NeuralNetwork.src.Utils;
 using NeuralNetwork.src.Models;
 
 namespace NeuralNetwork
@@ -7,6 +7,11 @@ namespace NeuralNetwork
     {
         static void Main(string[] args)
         {
+            RunNeuralNetwork();
+            //GenerateAugmentedData(1000000);
+        }
+
+        static void RunNeuralNetwork() {
             try
             {
                 // Clean the console
@@ -17,14 +22,14 @@ namespace NeuralNetwork
                 Activation[] activations = new Activation[] { Activation.ReLU, Activation.ReLU, Activation.ReLU, Activation.ReLU, Activation.Softmax };
                 double learningRate = 0.01;
                 int epochs = 20;
-                int batchSize = 64;
+                int batchSize = 32;
                 int verbose = 1;
-                double regularizationStrength = 0.00001;
-                int numModels = 2;
+                double regularizationStrength = 0.00000001;
+                int numModels = 4;
                 int numTrainingSamples = 100000;
                 int numTestSamples = 100000;
 
-                InitialMessages(layerSizes, learningRate, epochs, batchSize, verbose);
+                InitialMessages(layerSizes, learningRate, epochs, batchSize, verbose, numModels, regularizationStrength);
 
                 // Initialize the neural network
                 Ensemble ensemble = new Ensemble(numModels, layerSizes, activations, learningRate, epochs, batchSize, verbose, regularizationStrength);
@@ -39,7 +44,12 @@ namespace NeuralNetwork
             }
         }
 
-        static void InitialMessages(int[] layerSizes, double learningRate, int epochs, int batchSize, int verbose)
+        static void GenerateAugmentedData(int numSamples) {
+            var OriginalData = MnistReader.ReadOriginalData();
+            ImageAugmentation.CreateAugmentedDataset("data/augmented", numSamples);
+        }
+
+        static void InitialMessages(int[] layerSizes, double learningRate, int epochs, int batchSize, int verbose, int numModels, double regularizationStrength)
         {
             Console.WriteLine("Initializing Neural Network with parameters: ");
             Console.WriteLine($"Layer Sizes: {string.Join(", ", layerSizes)}");
@@ -47,6 +57,8 @@ namespace NeuralNetwork
             Console.WriteLine($"Epochs: {epochs}");
             Console.WriteLine($"Batch Size: {batchSize}");
             Console.WriteLine($"Verbose: {verbose}");
+            Console.WriteLine($"Number of Models: {numModels}");
+            Console.WriteLine($"Regularization Strength: {regularizationStrength}");
         }
 
         static void TrainEnsemble(Ensemble ensemble, int numTrainingSamples)

@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\JV\\JoaoVictor\\Projetos Pessoais\\NeuralNetwork\\NeuralNetwork\\NeuralNetwork.csproj": {}
+    "D:\\JV\\JoaoVictor\\Projetos Pessoais\\NeuralNetwork\\NeuralNetwork.csproj": {}
   },
   "projects": {
-    "D:\\JV\\JoaoVictor\\Projetos Pessoais\\NeuralNetwork\\NeuralNetwork\\NeuralNetwork.csproj": {
+    "D:\\JV\\JoaoVictor\\Projetos Pessoais\\NeuralNetwork\\NeuralNetwork.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\JV\\JoaoVictor\\Projetos Pessoais\\NeuralNetwork\\NeuralNetwork\\NeuralNetwork.csproj",
+        "projectUniqueName": "D:\\JV\\JoaoVictor\\Projetos Pessoais\\NeuralNetwork\\NeuralNetwork.csproj",
         "projectName": "NeuralNetwork",
-        "projectPath": "D:\\JV\\JoaoVictor\\Projetos Pessoais\\NeuralNetwork\\NeuralNetwork\\NeuralNetwork.csproj",
+        "projectPath": "D:\\JV\\JoaoVictor\\Projetos Pessoais\\NeuralNetwork\\NeuralNetwork.csproj",
         "packagesPath": "C:\\Users\\fabio\\.nuget\\packages\\",
-        "outputPath": "D:\\JV\\JoaoVictor\\Projetos Pessoais\\NeuralNetwork\\NeuralNetwork\\obj\\",
+        "outputPath": "D:\\JV\\JoaoVictor\\Projetos Pessoais\\NeuralNetwork\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\fabio\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -54,6 +54,10 @@
             "ScottPlot": {
               "target": "Package",
               "version": "[5.0.37, )"
+            },
+            "System.Diagnostics.PerformanceCounter": {
+              "target": "Package",
+              "version": "[8.0.0, )"
             },
             "System.Drawing.Common": {
               "target": "Package",

@@ -19,6 +19,28 @@ namespace NeuralNetwork.src.Utils
         }
     }
 
+    public static class Extensions
+    {
+        public static int ReadBigInt32(this BinaryReader br)
+        {
+            var bytes = br.ReadBytes(sizeof(Int32));
+            if (BitConverter.IsLittleEndian) Array.Reverse(bytes);
+            return BitConverter.ToInt32(bytes, 0);
+        }
+        public static void ForEach<T>(this T[,] source, Action<int, int> action)
+        {
+            for (int w = 0; w < source.GetLength(0); w++)
+            {
+                for (int h = 0; h < source.GetLength(1); h++)
+                {
+                    action(w, h);
+                }
+            }
+        }
+    }
+
+
+
     public static class MnistReader
     {
         private const string TrainImages = "data/train-images.idx3-ubyte";
@@ -34,6 +56,14 @@ namespace NeuralNetwork.src.Utils
         public static IEnumerable<Image> ReadTestData()
         {
             return Read(TestImages, TestLabels);
+        }
+
+        public static IEnumerable<Image> ReadOriginalData()
+        {
+            var trainingData = ReadTrainingData().ToList();
+            var testData = ReadTestData().ToList();
+            trainingData.AddRange(testData);
+            return trainingData;
         }
 
         public static IEnumerable<Image> ReadAugmentedData()
