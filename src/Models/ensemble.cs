@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using NeuralNetwork.src.Utils;
+using NeuralNetwork.src.Models;
 
 namespace NeuralNetwork.src.Models
 {
@@ -10,12 +11,12 @@ namespace NeuralNetwork.src.Models
         private PerformanceCounter? cpuCounter;
         private PerformanceCounter? ramCounter;
 
-        public Ensemble(int numModels, int[] layerSizes, Activation[] activations, double learningRate, int epochs, int batchSize, int verbose, double regularizationStrength)
+        public Ensemble(int numModels, int[] layerSizes, Activation[] activations, double learningRate, int epochs, int batchSize, int verbose, double regularizationStrength, OptimizerType optimizerType)
         {
             models = new List<NeuralNet>();
             for (int i = 0; i < numModels; i++)
             {
-                models.Add(new NeuralNet(layerSizes, activations, learningRate, epochs, batchSize, verbose, new Random(), regularizationStrength));
+                models.Add(new NeuralNet(layerSizes, activations, learningRate, epochs, batchSize, verbose, new Random(), regularizationStrength, optimizerType));
             }
 
             // Verify if the system is windows
@@ -142,12 +143,14 @@ namespace NeuralNetwork.src.Models
                 if ((i + 1) % verboseFactor == 0 || i == total - 1)
                 {
                     count++;
-                    double progress = (double)count / total;
+                    int CountHydratated = count * verboseFactor;
+
+                    double progress = (double)CountHydratated / total;
                     double elapsedSeconds = watch.Elapsed.TotalSeconds;
                     double estimatedTotalSeconds = elapsedSeconds / progress;
                     double remainingSeconds = estimatedTotalSeconds - elapsedSeconds;
 
-                    updateTestLog(count, progress, remainingSeconds, total);
+                    updateTestLog(progress, remainingSeconds, total, CountHydratated);
                 }
             });
 
@@ -155,9 +158,9 @@ namespace NeuralNetwork.src.Models
             Console.WriteLine($"\nTest Accuracy: {accuracy:P2} ({correct}/{total})");
         }
         
-        private void updateTestLog(int count, double progress, double remainingSeconds, int total)
+        private void updateTestLog(double progress, double remainingSeconds, int total, int CountHydratated)
         {
-            Console.Write($"\rProgress: {count}/{total} ({progress:P2}) | Estimated time remaining: {remainingSeconds:F2}s");
+            Console.Write($"\rProgress: {CountHydratated}/{total} ({progress:P2}) | Estimated time remaining: {remainingSeconds:F2}s");
 
             DrawProgressBar(progress);
             DisplayHardwareStatusString();
@@ -167,18 +170,10 @@ namespace NeuralNetwork.src.Models
         {
             int barWidth = 50;
             int filledWidth = (int)(progress * barWidth);
-            string progressBar = $"[{new string('■', filledWidth)}{new string('▪', 1)}{new string('□', barWidth - filledWidth - 1)}]";
+            string progressBar = $"[{new string('■', filledWidth)}{new string('▪', Math.Min(barWidth - filledWidth, 1))}{new string('□', Math.Max(barWidth - filledWidth - 1, 0))}]";
             Console.SetCursorPosition(0, Console.CursorTop + 1);
             Console.Write(progressBar);
             Console.SetCursorPosition(0, Console.CursorTop - 1);
-        }
-
-        private string DrawProgressBarString(double progress)
-        {
-            int barWidth = 50;
-            int filledWidth = (int)(progress * barWidth);
-            string progressBar = $"[{new string('=', filledWidth)}{new string(' ', barWidth - filledWidth)}]";
-            return progressBar;
         }
 
         private void DisplayHardwareStatus()
@@ -190,9 +185,9 @@ namespace NeuralNetwork.src.Models
 
             float cpuUsage = cpuCounter.NextValue();
             float availableMemory = ramCounter.NextValue();
-            Console.SetCursorPosition(0, models.Count + 9);
+            Console.SetCursorPosition(0, models.Count + 10);
             Console.Write(new string(' ', Console.WindowWidth));
-            Console.SetCursorPosition(0, models.Count + 9);
+            Console.SetCursorPosition(0, models.Count + 10);
             Console.Write($"\rCPU Usage: {cpuUsage:F2}% | Available Memory: {availableMemory:F2} MB");
         }
 
