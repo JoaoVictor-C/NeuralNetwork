@@ -1,0 +1,84 @@
+{
+  "format": 1,
+  "restore": {
+    "D:\\JV\\JoaoVictor\\Projetos Pessoais\\NeuralNetwork\\NeuralNetwork\\NeuralNetwork.csproj": {}
+  },
+  "projects": {
+    "D:\\JV\\JoaoVictor\\Projetos Pessoais\\NeuralNetwork\\NeuralNetwork\\NeuralNetwork.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "D:\\JV\\JoaoVictor\\Projetos Pessoais\\NeuralNetwork\\NeuralNetwork\\NeuralNetwork.csproj",
+        "projectName": "NeuralNetwork",
+        "projectPath": "D:\\JV\\JoaoVictor\\Projetos Pessoais\\NeuralNetwork\\NeuralNetwork\\NeuralNetwork.csproj",
+        "packagesPath": "C:\\Users\\fabio\\.nuget\\packages\\",
+        "outputPath": "D:\\JV\\JoaoVictor\\Projetos Pessoais\\NeuralNetwork\\NeuralNetwork\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\fabio\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        }
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "dependencies": {
+            "MathLibrary": {
+              "target": "Package",
+              "version": "[1.1.1, )"
+            },
+            "MathNet.Numerics": {
+              "target": "Package",
+              "version": "[5.0.0, )"
+            },
+            "ScottPlot": {
+              "target": "Package",
+              "version": "[5.0.37, )"
+            },
+            "System.Drawing.Common": {
+              "target": "Package",
+              "version": "[5.0.2, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.203/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

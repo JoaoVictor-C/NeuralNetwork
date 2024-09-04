@@ -1,0 +1,132 @@
+using System.Collections.Concurrent;
+using System.Diagnostics;
+using NeuralNetwork.src.Utils;
+
+namespace NeuralNetwork.src.Models
+{
+    public class Ensemble
+    {
+        private List<NeuralNet> models;
+
+        public Ensemble(int numModels, int[] layerSizes, Activation[] activations, double learningRate, int epochs, int batchSize, int verbose, double regularizationStrength)
+        {
+            models = new List<NeuralNet>();
+            for (int i = 0; i < numModels; i++)
+            {
+                models.Add(new NeuralNet(layerSizes, activations, learningRate, epochs, batchSize, verbose, new Random(), regularizationStrength));
+            }
+        }
+
+        public void Train(double[][] inputs, int[] labels)
+        {
+            var watch = new Stopwatch();
+            watch.Start();
+
+            Console.WriteLine($"Training ensemble of {models.Count} models...");
+            int totalEpochs = models[0].Epochs * models.Count;
+            int[] completedEpochs = new int[models.Count];
+            object[] modelLocks = Enumerable.Range(0, models.Count).Select(_ => new object()).ToArray();
+            object progressLock = new object();
+
+            Parallel.For(0, models.Count, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, (index) =>
+            {
+                for (int epoch = 0; epoch < models[index].Epochs; epoch++)
+                {
+                    var epochWatch = Stopwatch.StartNew();
+                    double epochLoss = models[index].Train(inputs, labels);
+                    double learningRate = models[index].LearningRate;
+                    epochWatch.Stop();
+
+                    
+                    
+                    lock (modelLocks[index])
+                    {
+                        Console.SetCursorPosition(0, index + 7);
+                        Console.Write($"\rModel {index + 1}: Epoch {epoch + 1}/{models[index].Epochs} | " +
+                                        $"Loss: {epochLoss:F4} | Time: {epochWatch.Elapsed.TotalSeconds:F2}s | " +
+                                        $"Learning Rate: {learningRate:F6}");
+                    }
+                    lock (progressLock)
+                    {
+                        completedEpochs[index]++;
+                        double progress = (double)completedEpochs.Sum() / totalEpochs;
+                        // Clear the line
+                        Console.SetCursorPosition(0, models.Count + 8);
+                        Console.Write(new string(' ', Console.WindowWidth));
+                        Console.SetCursorPosition(0, models.Count + 8);
+                        Console.Write($"\rProgress: {progress:P2}");
+                    }
+                }
+            });
+
+            Console.SetCursorPosition(0, models.Count + 9);
+
+            Console.WriteLine($"\nEnsemble training completed. Total training time: {watch.Elapsed.TotalSeconds:F2} seconds");
+        }
+
+        public int Classify(double[] input)
+        {
+            if (models.Count == 1)
+            {
+                double[] prediction = models[0].Classify(input);
+                return Array.IndexOf(prediction, prediction.Max());
+            }
+
+            var predictions = new ConcurrentBag<double[]>();
+
+            Parallel.ForEach(models, (model) =>
+            {
+                double[] prediction = model.Classify(input);
+                predictions.Add(prediction);
+            });
+
+            // Average the probabilities from all models
+            double[] averagePrediction = new double[predictions.First().Length];
+            foreach (var prediction in predictions)
+            {
+                for (int i = 0; i < averagePrediction.Length; i++)
+                {
+                    averagePrediction[i] += prediction[i];
+                }
+            }
+            for (int i = 0; i < averagePrediction.Length; i++)
+            {
+                averagePrediction[i] /= models.Count;
+            }
+
+            // Return the class with the highest average probability
+            return Array.IndexOf(averagePrediction, averagePrediction.Max());
+        }
+
+        public void Test(double[][] testInputs, int[] testLabels)
+        {
+            int correct = 0;
+            int total = testInputs.Length;
+            int verboseFactor = total / 100;
+            Console.WriteLine("\nTesting the model...");
+            object outputLock = new object();
+
+            Parallel.For(0, total, i =>
+            {
+                int predictedClass = Classify(testInputs[i]);
+                int actualClass = testLabels[i];
+
+                if (predictedClass == actualClass)
+                {
+                    correct++;
+                }
+
+                lock (outputLock)
+                {
+                    if ((i + 1) % verboseFactor == 0 || i == total - 1)
+                    {
+                        Console.Write($"\rProgress: {i + 1}/{total} ({(i + 1) / (double)total:P2})");
+                    }
+                }
+            });
+
+            double accuracy = (double)correct / total;
+            Console.WriteLine($"\nTest Accuracy: {accuracy:P2} ({correct}/{total})");
+        }
+    }
+}
