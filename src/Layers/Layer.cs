@@ -9,15 +9,16 @@ namespace NeuralNetwork.src.Layers
         public int InputSize { get; set; }
         public int OutputSize { get; private set; } 
         public double[] Outputs { get; set; }
-        public double[] Weights { get; set; }
-        public double[] Biases { get; set; }
+        public double[] Weights;
+        public double[] Biases;
         public double LearningRate { get; set; }
         public double RegularizationStrength { get; set; }
+        private IOptimizer optimizer;
 
         private Matrix<double> WeightMatrix;
         private Vector<double> BiasVector;
 
-        public Layer(Activation activation, int inputSize, int outputSize, double[] weights, double[] biases, double learningRate, System.Random rng, double regularizationStrength)
+        public Layer(Activation activation, int inputSize, int outputSize, double[] weights, double[] biases, double learningRate, System.Random rng, double regularizationStrength, IOptimizer optimizer)
         {
             Activation = activation;
             InputSize = inputSize;
@@ -27,6 +28,7 @@ namespace NeuralNetwork.src.Layers
             LearningRate = learningRate;
             Outputs = new double[outputSize];
             RegularizationStrength = regularizationStrength;
+            this.optimizer = optimizer;
 
             // Initialize weights and biases with random values
             InitializeRandomWeights(rng);
@@ -84,32 +86,25 @@ namespace NeuralNetwork.src.Layers
 
         public double[] Backward(double[] inputs, double[] outputs, double[] errors)
         {
+            // Ensure all vectors have the same dimensionality
+            if (inputs.Length != InputSize || outputs.Length != OutputSize || errors.Length != OutputSize)
+            {
+                throw new ArgumentException("All vectors must have the same dimensionality.");
+            }
+
             Vector<double> inputVector = Vector<double>.Build.DenseOfArray(inputs);
             Vector<double> outputVector = Vector<double>.Build.DenseOfArray(outputs);
             Vector<double> errorVector = Vector<double>.Build.DenseOfArray(errors);
 
-            // Calculate gradients
             Vector<double> delta = errorVector.PointwiseMultiply(outputVector.Map(ApplyActivationDerivative));
             Matrix<double> weightGradient = delta.OuterProduct(inputVector);
             Vector<double> biasGradient = delta;
 
-            // Calculate error for the previous layer
-            Vector<double> prevLayerError = WeightMatrix.Transpose() * delta;
+            optimizer.UpdateWeights(ref Weights, weightGradient.ToColumnMajorArray());
+            optimizer.UpdateBiases(ref Biases, biasGradient.ToArray());
 
-            // Update weights and biases
-            WeightMatrix -= weightGradient * LearningRate;
-            BiasVector -= biasGradient * LearningRate;
-
-            // Apply L2 regularization
-            WeightMatrix -= WeightMatrix * (RegularizationStrength * LearningRate);
-
-            // Update the Weights and Biases arrays
-            Weights = WeightMatrix.Enumerate().ToArray();
-            Biases = BiasVector.ToArray();
-
-            return prevLayerError.ToArray();
+            return weightGradient.ToColumnMajorArray();
         }
-
 
         private void InitializeRandomWeights(System.Random rng)
         {

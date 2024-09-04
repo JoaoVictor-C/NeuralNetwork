@@ -289,7 +289,7 @@ namespace NeuralNetwork.src.Utils
             string imagesPath = Path.Combine(outputDir, "augmented_images.bin");
             string labelsPath = Path.Combine(outputDir, "augmented_labels.bin");
 
-            var originalData = MnistReader.ReadTrainingData().ToList();
+            var originalData = MnistReader.ReadOriginalData().ToList();
             Random rng = new Random();
 
             using (BinaryWriter imageWriter = new BinaryWriter(File.Open(imagesPath, FileMode.Create)))
@@ -327,7 +327,9 @@ namespace NeuralNetwork.src.Utils
                         labelWriter.Write(originalImage.Label);
                     }
 
-                    if ((i + 1) % 10000 == 0 || i == numAugmentedImages - 1)
+                    int factor = numAugmentedImages / 100;
+
+                    if ((i + 1) % factor == 0 || i == numAugmentedImages - 1)
                     {
                         Console.WriteLine($"Progress: {i + 1}/{numAugmentedImages} images processed");
                     }

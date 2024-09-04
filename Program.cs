@@ -20,22 +20,27 @@ namespace NeuralNetwork
                 // Define the neural network parameters
                 int[] layerSizes = new int[] { 784, 128, 64, 32, 10 };
                 Activation[] activations = new Activation[] { Activation.ReLU, Activation.ReLU, Activation.ReLU, Activation.ReLU, Activation.Softmax };
-                double learningRate = 0.01;
+                double learningRate = 0.001;
                 int epochs = 20;
-                int batchSize = 32;
+                int batchSize = 64;
                 int verbose = 1;
-                double regularizationStrength = 0.00000001;
-                int numModels = 4;
+                double regularizationStrength = 1e-8;
+                int numModels = 3;
                 int numTrainingSamples = 100000;
                 int numTestSamples = 100000;
+                OptimizerType optimizerType = OptimizerType.Adam;
+
+                // Define the optimizer parameters
+                double beta1 = 0.9; 
+                double beta2 = 0.99;
+                double epsilon = 1e-8;
 
                 InitialMessages(layerSizes, learningRate, epochs, batchSize, verbose, numModels, regularizationStrength);
 
-                // Initialize the neural network
-                Ensemble ensemble = new Ensemble(numModels, layerSizes, activations, learningRate, epochs, batchSize, verbose, regularizationStrength);
+                // Initialize the neural network with the optimizer
+                Ensemble ensemble = new Ensemble(numModels, layerSizes, activations, learningRate, epochs, batchSize, verbose, regularizationStrength, optimizerType);
 
                 TrainEnsemble(ensemble, numTrainingSamples);
-
                 TestEnsemble(ensemble, numTrainingSamples, numTestSamples);
             }
             catch (Exception ex)
@@ -45,7 +50,6 @@ namespace NeuralNetwork
         }
 
         static void GenerateAugmentedData(int numSamples) {
-            var OriginalData = MnistReader.ReadOriginalData();
             ImageAugmentation.CreateAugmentedDataset("data/augmented", numSamples);
         }
 

@@ -20,9 +20,11 @@ namespace NeuralNetwork.src.Models
         public List<double> Accuracy { get; set; } = new List<double>();
         public System.Random Rng { get; set; }
         public double RegularizationStrength { get; set; }
+        public IOptimizer Optimizer { get; set; }
+        public OptimizerType OptimizerType { get; private set; }
 
         // Constructor
-        public NeuralNet(int[] layerSizes, Activation[] activations, double learningRate, int epochs, int batchSize, int verbose, System.Random rng, double regularizationStrength)
+        public NeuralNet(int[] layerSizes, Activation[] activations, double learningRate, int epochs, int batchSize, int verbose, System.Random rng, double regularizationStrength, OptimizerType optimizerType)
         {
             Layers = new List<Layer>();
             Loss = new List<double>();
@@ -36,8 +38,10 @@ namespace NeuralNetwork.src.Models
             Activations = activations;
             this.LayerSizes = layerSizes;
             Rng = new System.Random();
+            OptimizerType = optimizerType;
+            Optimizer = CreateOptimizer(optimizerType, learningRate, layerSizes[0] * layerSizes[1], layerSizes[1]);
 
-            // Initialize layers
+            // Initialize layers with the optimizer
             for (int i = 0; i < layerSizes.Length - 1; i++)
             {
                 Activation activation = activations[i];
@@ -45,7 +49,25 @@ namespace NeuralNetwork.src.Models
                 int outputSize = layerSizes[i + 1];
                 double[] weights = new double[inputSize * outputSize];
                 double[] biases = new double[outputSize];
-                Layers.Add(new Layer(activation, inputSize, outputSize, weights, biases, learningRate, Rng, regularizationStrength));
+                IOptimizer layerOptimizer = Optimizer.Clone();
+                Layers.Add(new Layer(activation, inputSize, outputSize, weights, biases, learningRate, Rng, regularizationStrength, layerOptimizer));
+            }
+        }
+
+        private IOptimizer CreateOptimizer(OptimizerType type, double learningRate, int weightSize, int biasSize)
+        {
+            switch (type)
+            {
+                case OptimizerType.SGD:
+                    return new SGD(learningRate);
+                case OptimizerType.Momentum:
+                    return new Momentum(learningRate, 0.9, weightSize, biasSize);
+                case OptimizerType.Adam:
+                    return new Adam(learningRate, 0.9, 0.999, 1e-8, weightSize, biasSize);
+                case OptimizerType.RMSprop:
+                    return new RMSprop(learningRate, 0.9, 1e-8, weightSize, biasSize);
+                default:
+                    throw new ArgumentException("Invalid optimizer type");
             }
         }
 
