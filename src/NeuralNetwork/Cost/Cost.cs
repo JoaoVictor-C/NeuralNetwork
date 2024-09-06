@@ -2,94 +2,131 @@ namespace NeuralNetwork.Cost;
 
 public class Cost
 {
+    public enum CostType
+    {
+        MeanSquareError,
+        CrossEntropy,
+        HuberLoss,
+        LogCosh
+    }
 
-	public enum CostType
-	{
-		MeanSquareError,
-		CrossEntropy
-	}
+    public static ICost GetCostFromType(CostType type)
+    {
+        return type switch
+        {
+            CostType.MeanSquareError => new MeanSquaredError(),
+            CostType.CrossEntropy => new CrossEntropy(),
+            CostType.HuberLoss => new HuberLoss(),
+            CostType.LogCosh => new LogCosh(),
+            _ => throw new ArgumentException("Unhandled cost type", nameof(type))
+        };
+    }
 
-	public static ICost GetCostFromType(CostType type)
-	{
-		switch (type)
-		{
-			case CostType.MeanSquareError:
-				return new MeanSquaredError();
-			case CostType.CrossEntropy:
-				return new CrossEntropy();
-			default:
-				Console.WriteLine("Unhandled cost type");
-				return new MeanSquaredError();
-		}
-	}
+    public class MeanSquaredError : ICost
+    {
+        public double CalculateCost(double[] outputs, double[] expectedOutputs)
+        {
+            return CostFunction(outputs, expectedOutputs);
+        }
 
-	public class MeanSquaredError : ICost
-	{
-		public double CalculateCost(double[] outputs, double[] expectedOutputs)
-		{
-			return CostFunction(outputs, expectedOutputs);
-		}
+        public double CostFunction(double[] predictedOutputs, double[] expectedOutputs)
+        {
+            double cost = 0;
+            for (int i = 0; i < predictedOutputs.Length; i++)
+            {
+                double error = predictedOutputs[i] - expectedOutputs[i];
+                cost += error * error;
+            }
+            return 0.5 * cost;
+        }
 
-		public double CostFunction(double[] predictedOutputs, double[] expectedOutputs)
-		{
-			// cost is sum (for all x,y pairs) of: 0.5 * (x-y)^2
-			double cost = 0;
-			for (int i = 0; i < predictedOutputs.Length; i++)
-			{
-				double error = predictedOutputs[i] - expectedOutputs[i];
-				cost += error * error;
-			}
-			return 0.5 * cost;
-		}
+        public double CostDerivative(double predictedOutput, double expectedOutput)
+        {
+            return predictedOutput - expectedOutput;
+        }
 
-		public double CostDerivative(double predictedOutput, double expectedOutput)
-		{
-			return predictedOutput - expectedOutput;
-		}
+        public CostType CostFunctionType()
+        {
+            return CostType.MeanSquareError;
+        }
+    }
 
-		public CostType CostFunctionType()
-		{
-			return CostType.MeanSquareError;
-		}
-	}
+    public class CrossEntropy : ICost
+    {
+        public double CalculateCost(double[] outputs, double[] expectedOutputs)
+        {
+            return CostFunction(outputs, expectedOutputs);
+        }
 
-	public class CrossEntropy : ICost
-	{
-		public double CalculateCost(double[] outputs, double[] expectedOutputs)
-		{
-			return CostFunction(outputs, expectedOutputs);
-		}
+        public double CostFunction(double[] predictedOutputs, double[] expectedOutputs)
+        {
+            double cost = 0;
+            for (int i = 0; i < predictedOutputs.Length; i++)
+            {
+                cost += expectedOutputs[i] * Math.Log(predictedOutputs[i]) + (1 - expectedOutputs[i]) * Math.Log(1 - predictedOutputs[i]);
+            }
+            return -cost;
+        }
 
-		// Note: expected outputs are expected to all be either 0 or 1
-		public double CostFunction(double[] predictedOutputs, double[] expectedOutputs)
-		{
-			// cost is sum (for all x,y pairs) of: 0.5 * (x-y)^2
-			double cost = 0;
-			for (int i = 0; i < predictedOutputs.Length; i++)
-			{
-				double x = predictedOutputs[i];
-				double y = expectedOutputs[i];
-				double v = (y == 1) ? -System.Math.Log(x) : -System.Math.Log(1 - x);
-				cost += double.IsNaN(v) ? 0 : v;
-			}
-			return cost;
-		}
+        public double CostDerivative(double predictedOutput, double expectedOutput)
+        {
+            return predictedOutput - expectedOutput;
+        }
 
-		public double CostDerivative(double predictedOutput, double expectedOutput)
-		{
-			double x = predictedOutput;
-			double y = expectedOutput;
-			if (x == 0 || x == 1)
-			{
-				return 0;
-			}
-			return (-x + y) / (x * (x - 1));
-		}
+        public CostType CostFunctionType()
+        {
+            return CostType.CrossEntropy;
+        }
+    }
 
-		public CostType CostFunctionType()
-		{
-			return CostType.CrossEntropy;
-		}
-	}
+    public class HuberLoss : ICost
+    {
+        private const double Delta = 1.0;
 
+        public double CalculateCost(double[] outputs, double[] expectedOutputs)
+        {
+            return CostFunction(outputs, expectedOutputs);
+        }
+
+        public double CostFunction(double[] predictedOutputs, double[] expectedOutputs)
+        {
+            return Enumerable.Range(0, predictedOutputs.Length)
+                .Sum(i => HuberLossFunction(predictedOutputs[i], expectedOutputs[i]));
+        }
+
+        private double HuberLossFunction(double predicted, double expected)
+        {
+            double error = Math.Abs(predicted - expected);
+            return error <= Delta ? 0.5 * error * error : Delta * (error - 0.5 * Delta);
+        }
+
+        public double CostDerivative(double predictedOutput, double expectedOutput)
+        {
+            double error = predictedOutput - expectedOutput;
+            return Math.Abs(error) <= Delta ? error : Delta * Math.Sign(error);
+        }
+
+        public CostType CostFunctionType() => CostType.HuberLoss;
+    }
+
+    public class LogCosh : ICost
+    {
+        public double CalculateCost(double[] outputs, double[] expectedOutputs)
+        {
+            return CostFunction(outputs, expectedOutputs);
+        }
+
+        public double CostFunction(double[] predictedOutputs, double[] expectedOutputs)
+        {
+            return Enumerable.Range(0, predictedOutputs.Length)
+                .Sum(i => Math.Log(Math.Cosh(predictedOutputs[i] - expectedOutputs[i])));
+        }
+
+        public double CostDerivative(double predictedOutput, double expectedOutput)
+        {
+            return Math.Tanh(predictedOutput - expectedOutput);
+        }
+
+        public CostType CostFunctionType() => CostType.LogCosh;
+    }
 }

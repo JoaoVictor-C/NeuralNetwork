@@ -79,7 +79,7 @@ public readonly struct Activation
 	{
 		public double Activate(double[] inputs, int index)
 		{
-			return Max(0, inputs[index]);
+			return inputs[index] > 0 ? inputs[index] : 0;
 		}
 
 		public double Derivative(double[] inputs, int index)
@@ -117,28 +117,29 @@ public readonly struct Activation
 	{
 		public double Activate(double[] inputs, int index)
 		{
+			double max = inputs.Max();
 			double expSum = 0;
 			for (int i = 0; i < inputs.Length; i++)
 			{
-				expSum += Exp(inputs[i]);
+				expSum += Exp(inputs[i] - max);
 			}
 
-			double res = Exp(inputs[index]) / expSum;
-
-			return res;
+			return Exp(inputs[index] - max) / expSum;
 		}
 
 		public double Derivative(double[] inputs, int index)
 		{
+			double max = inputs.Max();
 			double expSum = 0;
+			double[] expInputs = new double[inputs.Length];
 			for (int i = 0; i < inputs.Length; i++)
 			{
-				expSum += Exp(inputs[i]);
+				expInputs[i] = Math.Exp(inputs[i] - max);
+				expSum += expInputs[i];
 			}
 
-			double ex = Exp(inputs[index]);
-
-			return (ex * expSum - ex * ex) / (expSum * expSum);
+			double softmax = expInputs[index] / expSum;
+			return softmax * (1 - softmax);
 		}
 
 		public ActivationType GetActivationType()
