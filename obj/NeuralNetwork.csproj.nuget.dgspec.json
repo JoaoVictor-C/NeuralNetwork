@@ -1,30 +1,30 @@
 {
   "format": 1,
   "restore": {
-    "C:\\JoaoVictor\\Estudos\\NeuralNetwork\\NeuralNetwork.csproj": {}
+    "D:\\JV\\JoaoVictor\\Projetos Pessoais\\NeuralNetwork-Project\\NeuralNetwork.csproj": {}
   },
   "projects": {
-    "C:\\JoaoVictor\\Estudos\\NeuralNetwork\\NeuralNetwork.csproj": {
+    "D:\\JV\\JoaoVictor\\Projetos Pessoais\\NeuralNetwork-Project\\NeuralNetwork.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\JoaoVictor\\Estudos\\NeuralNetwork\\NeuralNetwork.csproj",
+        "projectUniqueName": "D:\\JV\\JoaoVictor\\Projetos Pessoais\\NeuralNetwork-Project\\NeuralNetwork.csproj",
         "projectName": "NeuralNetwork",
-        "projectPath": "C:\\JoaoVictor\\Estudos\\NeuralNetwork\\NeuralNetwork.csproj",
-        "packagesPath": "C:\\Users\\Joao Victor\\.nuget\\packages\\",
-        "outputPath": "C:\\JoaoVictor\\Estudos\\NeuralNetwork\\obj\\",
+        "projectPath": "D:\\JV\\JoaoVictor\\Projetos Pessoais\\NeuralNetwork-Project\\NeuralNetwork.csproj",
+        "packagesPath": "C:\\Users\\fabio\\.nuget\\packages\\",
+        "outputPath": "D:\\JV\\JoaoVictor\\Projetos Pessoais\\NeuralNetwork-Project\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\Joao Victor\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\fabio\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
-          "net8.0"
+          "net8.0-windows"
         ],
         "sources": {
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
-          "net8.0": {
-            "targetAlias": "net8.0",
+          "net8.0-windows7.0": {
+            "targetAlias": "net8.0-windows",
             "projectReferences": {}
           }
         },
@@ -40,8 +40,8 @@
         }
       },
       "frameworks": {
-        "net8.0": {
-          "targetAlias": "net8.0",
+        "net8.0-windows7.0": {
+          "targetAlias": "net8.0-windows",
           "dependencies": {
             "MathLibrary": {
               "target": "Package",
@@ -50,6 +50,10 @@
             "MathNet.Numerics": {
               "target": "Package",
               "version": "[5.0.0, )"
+            },
+            "Newtonsoft.json": {
+              "target": "Package",
+              "version": "[13.0.3, )"
             },
             "ScottPlot": {
               "target": "Package",
@@ -78,9 +82,12 @@
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
+            },
+            "Microsoft.WindowsDesktop.App.WindowsForms": {
+              "privateAssets": "none"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.201/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.203/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

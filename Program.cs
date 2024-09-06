@@ -1,86 +1,49 @@
-﻿ using NeuralNetwork.src.Utils;
-using NeuralNetwork.src.Models;
+﻿using NeuralNetwork;
+using DataHandling;
+using static DataHandling.ImageLoader;
+//using ImageDisplay;
+using Utils;
 
-namespace NeuralNetwork
+namespace Program;
+
+public class Program
 {
-    class Program
-    {
-        static void Main(string[] args)
-        {
-            RunNeuralNetwork();
-            //GenerateAugmentedData(1000000);
-        }
+	public static void Main(string[] args)
+	{
+		Console.Clear();
+		Console.WriteLine("Starting neural network training and testing...");
 
-        static void RunNeuralNetwork() {
-            try
-            {
-                // Clean the console
-                Console.Clear();
+		HyperParameters hyperParameters = HyperParameters.LoadFromJson("src/NeuralNetwork/parameters.json");
+		Console.WriteLine($"Loaded hyperparameters: Epochs={hyperParameters.epochs}, Learning Rate={hyperParameters.initialLearningRate}, Regularization={hyperParameters.regularization}, Momentum={hyperParameters.momentum}");
 
-                // Define the neural network parameters
-                int[] layerSizes = new int[] { 784, 128, 64, 32, 10 };
-                Activation[] activations = new Activation[] { Activation.ReLU, Activation.ReLU, Activation.ReLU, Activation.ReLU, Activation.Softmax };
-                double learningRate = 0.001;
-                int epochs = 20;
-                int batchSize = 64;
-                int verbose = 1;
-                double regularizationStrength = 1e-8;
-                int numModels = 3;
-                int numTrainingSamples = 100000;
-                int numTestSamples = 100000;
-                OptimizerType optimizerType = OptimizerType.Adam;
+		string ImagePath = "data/train-images.idx3-ubyte";
+		string LabelPath = "data/train-labels.idx1-ubyte";
+		//string ImagePath2 = "data/t10k-images.idx3-ubyte";
+		//string LabelPath2 = "data/t10k-labels.idx1-ubyte";
 
-                // Define the optimizer parameters
-                double beta1 = 0.9; 
-                double beta2 = 0.99;
-                double epsilon = 1e-8;
+		ImageLoader loader = new ImageLoader(new DataFile[] { 
+			new DataFile() { 
+				imageFile = new TextAsset() { bytes = FileHelper.ReadAllBytes(ImagePath) }, 
+				labelFile = new TextAsset() { bytes = FileHelper.ReadAllBytes(LabelPath) } 
+			} 
+		}, new string[] { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" }, 28, true);
+	
+		// We will load all the data from the image loader
+		DataPoint[] data = loader.GetAllData();
+		// We will separate the data based on the trainTestSplit value
+		DataPoint[] trainData = data.Take((int)(data.Length * hyperParameters.trainTestSplit)).ToArray();
+		DataPoint[] testData = data.Skip((int)(data.Length * hyperParameters.trainTestSplit)).ToArray();
 
-                InitialMessages(layerSizes, learningRate, epochs, batchSize, verbose, numModels, regularizationStrength);
+		// We will train our neural network with the data we loaded
+		Console.WriteLine($"Loaded {data.Length} data points");
+		Console.WriteLine($"Training set size: {trainData.Length}, Test set size: {testData.Length}");
+		Console.WriteLine("Initializing neural network...");
+		NeuralNetwork.NeuralNetwork network = new NeuralNetwork.NeuralNetwork(hyperParameters.layerSizes);
+		Console.WriteLine($"Neural network created with layer sizes: {string.Join(", ", hyperParameters.layerSizes)}");
 
-                // Initialize the neural network with the optimizer
-                Ensemble ensemble = new Ensemble(numModels, layerSizes, activations, learningRate, epochs, batchSize, verbose, regularizationStrength, optimizerType);
+		network.Learn(trainData, hyperParameters.initialLearningRate, hyperParameters.regularization, hyperParameters.momentum);
 
-                TrainEnsemble(ensemble, numTrainingSamples);
-                TestEnsemble(ensemble, numTrainingSamples, numTestSamples);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"An error occurred while loading the data: {ex.Message}");
-            }
-        }
+		network.Test(testData);
 
-        static void GenerateAugmentedData(int numSamples) {
-            ImageAugmentation.CreateAugmentedDataset("data/augmented", numSamples);
-        }
-
-        static void InitialMessages(int[] layerSizes, double learningRate, int epochs, int batchSize, int verbose, int numModels, double regularizationStrength)
-        {
-            Console.WriteLine("Initializing Neural Network with parameters: ");
-            Console.WriteLine($"Layer Sizes: {string.Join(", ", layerSizes)}");
-            Console.WriteLine($"Learning Rate: {learningRate}");
-            Console.WriteLine($"Epochs: {epochs}");
-            Console.WriteLine($"Batch Size: {batchSize}");
-            Console.WriteLine($"Verbose: {verbose}");
-            Console.WriteLine($"Number of Models: {numModels}");
-            Console.WriteLine($"Regularization Strength: {regularizationStrength}");
-        }
-
-        static void TrainEnsemble(Ensemble ensemble, int numTrainingSamples)
-        {
-            var trainingData = MnistReader.ReadAugmentedData().Take(numTrainingSamples).ToList();
-            double[][] inputs = trainingData.Select(image => ImageHydratation.FlattenAndNormalize(image.Data)).ToArray();
-            int[] labels = trainingData.Select(image => (int)image.Label).ToArray();
-
-            ensemble.Train(inputs, labels);
-        }
-
-        static void TestEnsemble(Ensemble ensemble, int numTrainingSamples, int numTestSamples)
-        {
-            var testData = MnistReader.ReadAugmentedData().Skip(numTrainingSamples).Take(numTestSamples).ToList();
-            double[][] testInputs = testData.Select(image => ImageHydratation.FlattenAndNormalize(image.Data)).ToArray();
-            int[] testLabels = testData.Select(image => (int)image.Label).ToArray();
-
-            ensemble.Test(testInputs, testLabels);
-        }
-    }
+	}
 }
