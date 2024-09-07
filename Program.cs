@@ -39,7 +39,6 @@ public class Program
 		Console.WriteLine($"Training set size: {trainData.Length}, Test set size: {testData.Length}");
 		Console.WriteLine("Initializing neural network...");
 		NeuralNetwork.NeuralNetwork network = new NeuralNetwork.NeuralNetwork(hyperParameters.layerSizes);
-		Console.WriteLine($"Neural network created with layer sizes: {string.Join(", ", hyperParameters.layerSizes)}");
 
 		network.Learn(trainData, hyperParameters.initialLearningRate, hyperParameters.regularization, hyperParameters.momentum);
 

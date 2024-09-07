@@ -13,50 +13,36 @@ public class NeuralNetwork
 
 	public ICost cost;
 	System.Random rng;
-	NetworkLearnData[] batchLearnData;
 	HyperParameters hyperParameters;
+	NetworkLearnData[] batchLearnData;
 
 	// Create the neural network
 	public NeuralNetwork(int[] layerSizes)
 	{
 		hyperParameters = HyperParameters.LoadFromJson("src/NeuralNetwork/parameters.json");
 
-		batchLearnData = new NetworkLearnData[0]; 
 		this.layerSizes = layerSizes;
-		rng = new System.Random();
-
 		layers = new Layer[layerSizes.Length - 1];
+
+		rng = new System.Random(hyperParameters.seed);
+
 		for (int i = 0; i < layers.Length; i++)
 		{
 			layers[i] = new Layer(layerSizes[i], layerSizes[i + 1], rng);
 		}
+
+		// Set the output layer activation to the specified output activation type
+		layers[layers.Length - 1].SetActivationFunction(Activation.Activation.GetActivationFromType(hyperParameters.outputActivationType));
+
 		cost = Cost.Cost.GetCostFromType(hyperParameters.costType);
-		SetActivationFunction(Activation.Activation.GetActivationFromType(hyperParameters.activationType), Activation.Activation.GetActivationFromType(hyperParameters.outputActivationType));
+
+		Console.WriteLine($"Neural network created with layer sizes: {string.Join(", ", layerSizes)}");
 	}
 
-	// Run the inputs through the network to predict which class they belong to.
-	// Also returns the activations from the output layer.
-	public (int predictedClass, double[] outputs) Classify(double[] inputs)
-	{
-		var outputs = CalculateOutputs(inputs);
-		int predictedClass = MaxValueIndex(outputs);
-		return (predictedClass, outputs);
-	}
-
-	// Run the inputs through the network to calculate the outputs
-	public double[] CalculateOutputs(double[] inputs)
-	{
-		foreach (Layer layer in layers)
-		{
-			inputs = layer.CalculateOutputs(inputs);
-		}
-		return inputs;
-	}
-
-
-	public void Learn(DataPoint[] trainingData, double learnRate, double regularization = 0, double momentum = 0)
+	public void Learn(DataPoint[] trainingData, double learningRate, double regularization, double momentum)
 	{
 		Console.WriteLine($"Starting training with {trainingData.Length} data points");
+		Console.WriteLine($"Learning rate: {learningRate}, Regularization: {regularization}, Momentum: {momentum}");
 
 		Stopwatch stopwatch = new Stopwatch();
 		stopwatch.Start();
@@ -64,9 +50,10 @@ public class NeuralNetwork
 		double previousLoss = double.MaxValue;
 		double currentLoss = 0;
 
+		DataPoint[] testData = trainingData.Take((int)(trainingData.Length * hyperParameters.trainTestSplit)).ToArray();
+
 		for (int epoch = 0; epoch < hyperParameters.epochs; epoch++)
 		{
-			Stopwatch testInTrainingStopwatch = new Stopwatch();
 			Stopwatch epochStopwatch = new Stopwatch();
 			epochStopwatch.Start();
 
@@ -88,7 +75,7 @@ public class NeuralNetwork
 			currentLoss = 0;
 			for (int i = 0; i < layers.Length; i++)
 			{
-				layers[i].ApplyGradients(learnRate, regularization, momentum);
+				layers[i].ApplyGradients(learningRate, regularization, momentum);
 			}
 
 			for (int i = 0; i < trainingData.Length; i++)
@@ -99,113 +86,80 @@ public class NeuralNetwork
 			currentLoss /= trainingData.Length;
 
 			epochStopwatch.Stop();
-			testInTrainingStopwatch.Start();
 
-			double trainingAccuracy = Test(trainingData, false);
-
-			testInTrainingStopwatch.Stop();
+			double trainingAccuracy = Test(testData);
 			Console.WriteLine($"Epoch {epoch + 1}/{hyperParameters.epochs}:");
 			Console.WriteLine($"  Loss: {currentLoss:F6}");
 			Console.WriteLine($"  Training accuracy: {trainingAccuracy:P2}");
-			Console.WriteLine($"  Time: {epochStopwatch.ElapsedMilliseconds}ms");
+			Console.WriteLine($"  Time: {epochStopwatch.ElapsedMilliseconds / 1000.0}s");
 			Console.WriteLine($"  Loss change: {previousLoss - currentLoss:F6}");
-			Console.WriteLine($"  Test in training time: {testInTrainingStopwatch.ElapsedMilliseconds}ms");
 
 			previousLoss = currentLoss;
 		}
 
 		stopwatch.Stop();
 		Console.WriteLine("Training completed");
-		Console.WriteLine($"Total training time: {stopwatch.ElapsedMilliseconds}ms");
+		Console.WriteLine($"Total training time: {stopwatch.ElapsedMilliseconds / 1000.0}s");
 		Console.WriteLine($"Final loss: {currentLoss:F6}");
 	}
 
-	public double Test(DataPoint[] testData, bool verbose = true)
+	public double Test(DataPoint[] testData)
 	{
-		int correct = 0;
-		foreach (DataPoint data in testData)
+		int correctPredictions = 0;
+
+		Parallel.For(0, testData.Length, (i) =>
 		{
-			var (predictedClass, outputs) = Classify(data.inputs);
-			if (predictedClass == data.expectedOutputs.Max())
+			double[] outputs = CalculateOutputs(testData[i].inputs);
+			int predictedClass = MaxValueIndex(outputs);
+			int actualClass = MaxValueIndex(testData[i].expectedOutputs);
+
+			if (predictedClass == actualClass)
 			{
-				correct++;
+				Interlocked.Increment(ref correctPredictions);
 			}
-		}
-		double accuracy = (double)correct / testData.Length;
-		if (verbose)
-		{
-			Console.WriteLine($"Test results: {correct} correct out of {testData.Length}");
-		}
+		});
+
+		double accuracy = (double)correctPredictions / testData.Length;
 		return accuracy;
 	}
 
-
-	void UpdateGradients(DataPoint data, NetworkLearnData learnData)
+	private void UpdateGradients(DataPoint dataPoint, NetworkLearnData learnData)
 	{
-		// Feed data through the network to calculate outputs.
-		// Save all inputs/weightedinputs/activations along the way to use for backpropagation.
-		double[] inputsToNextLayer = data.inputs;
-
+		// Forward pass
+		double[] inputs = dataPoint.inputs;
 		for (int i = 0; i < layers.Length; i++)
 		{
-			inputsToNextLayer = layers[i].CalculateOutputs(inputsToNextLayer, learnData.layerData[i]);
+			inputs = layers[i].CalculateOutputs(inputs, learnData.layerData[i]);
 		}
 
-		// -- Backpropagation --
+		// Backward pass
 		int outputLayerIndex = layers.Length - 1;
-		Layer outputLayer = layers[outputLayerIndex];
-		LayerLearnData outputLearnData = learnData.layerData[outputLayerIndex];
-
-		// Update output layer gradients
-		outputLayer.CalculateOutputLayerNodeValues(outputLearnData, data.expectedOutputs, cost);
-		outputLayer.UpdateGradients(outputLearnData);
-
-		// Update all hidden layer gradients
+		layers[outputLayerIndex].CalculateOutputLayerNodeValues(learnData.layerData[outputLayerIndex], dataPoint.expectedOutputs, cost);
 		for (int i = outputLayerIndex - 1; i >= 0; i--)
 		{
-			LayerLearnData layerLearnData = learnData.layerData[i];
-			Layer hiddenLayer = layers[i];
-
-			hiddenLayer.CalculateHiddenLayerNodeValues(layerLearnData, layers[i + 1], learnData.layerData[i + 1].nodeValues);
-			hiddenLayer.UpdateGradients(layerLearnData);
+			layers[i].CalculateHiddenLayerNodeValues(learnData.layerData[i], layers[i + 1], learnData.layerData[i + 1].nodeValues);
 		}
 
-	}
-
-	public void SetCostFunction(ICost costFunction)
-	{
-		this.cost = costFunction;
-	}
-
-	public void SetActivationFunction(IActivation activation)
-	{
-		SetActivationFunction(activation, activation);
-	}
-
-	public void SetActivationFunction(IActivation activation, IActivation outputLayerActivation)
-	{
-		for (int i = 0; i < layers.Length - 1; i++)
+		// Update gradients
+		for (int i = 0; i < layers.Length; i++)
 		{
-			layers[i].SetActivationFunction(activation);
+			layers[i].UpdateGradients(learnData.layerData[i]);
 		}
-		layers[layers.Length - 1].SetActivationFunction(outputLayerActivation);
 	}
 
+	public double[] CalculateOutputs(double[] inputs)
+	{
+		for (int i = 0; i < layers.Length; i++)
+		{
+			inputs = layers[i].CalculateOutputs(inputs);
+		}
+		return inputs;
+	}
 
 	public int MaxValueIndex(double[] values)
 	{
-		double maxValue = double.MinValue;
-		int index = 0;
-		for (int i = 0; i < values.Length; i++)
-		{
-			if (values[i] > maxValue)
-			{
-				maxValue = values[i];
-				index = i;
-			}
-		}
-
-		return index;
+		double maxValue = values.Max();
+		return Array.IndexOf(values, maxValue);
 	}
 }
 
@@ -230,11 +184,13 @@ public class LayerLearnData
 	public double[] weightedInputs;
 	public double[] activations;
 	public double[] nodeValues;
-
+	public double[] gradients;
 	public LayerLearnData(Layer layer)
 	{
+		inputs = new double[layer.numNodesIn];
 		weightedInputs = new double[layer.numNodesOut];
 		activations = new double[layer.numNodesOut];
 		nodeValues = new double[layer.numNodesOut];
+		gradients = new double[layer.numNodesOut];
 	}
 }

@@ -1,13 +1,14 @@
 {
-    "layerSizes": [784, 128, 64, 10],
+    "layerSizes": [784, 100, 10],
     "activationType": "ReLU",
     "outputActivationType": "Softmax",
-    "costType": "CrossEntropy",
+    "costType": "MeanSquareError",
     "initialLearningRate": 0.05,
     "learnRateDecay": 0.075,
     "minibatchSize": 32,
     "momentum": 0.9,
-    "regularization": 0.1,
+    "regularization": 0.01,
     "epochs": 10,
-    "trainTestSplit": 0.8
+    "trainTestSplit": 0.8,
+    "seed": 123456789
 }

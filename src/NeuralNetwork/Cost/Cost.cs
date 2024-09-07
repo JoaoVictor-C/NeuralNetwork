@@ -1,3 +1,5 @@
+using System;
+
 namespace NeuralNetwork.Cost;
 
 public class Cost
@@ -55,35 +57,26 @@ public class Cost
 
 	public class CrossEntropy : ICost
 	{
+		private const double epsilon = 1e-15; // Small value to prevent log(0)
+
 		public double CalculateCost(double[] outputs, double[] expectedOutputs)
 		{
 			return CostFunction(outputs, expectedOutputs);
 		}
 
-		// Note: expected outputs are expected to all be either 0 or 1
 		public double CostFunction(double[] predictedOutputs, double[] expectedOutputs)
-		{
-			// cost is sum (for all x,y pairs) of: 0.5 * (x-y)^2
-			double cost = 0;
-			for (int i = 0; i < predictedOutputs.Length; i++)
-			{
-				double x = predictedOutputs[i];
-				double y = expectedOutputs[i];
-				double v = (y == 1) ? -System.Math.Log(x) : -System.Math.Log(1 - x);
-				cost += double.IsNaN(v) ? 0 : v;
-			}
-			return cost;
-		}
+        {
+            double cost = 0;
+            for (int i = 0; i < predictedOutputs.Length; i++)
+            {
+                cost += expectedOutputs[i] * Math.Log(predictedOutputs[i]) + (1 - expectedOutputs[i]) * Math.Log(1 - predictedOutputs[i]);
+            }
+            return -cost;
+        }
 
 		public double CostDerivative(double predictedOutput, double expectedOutput)
 		{
-			double x = predictedOutput;
-			double y = expectedOutput;
-			if (x == 0 || x == 1)
-			{
-				return 0;
-			}
-			return (-x + y) / (x * (x - 1));
+			return (predictedOutput - expectedOutput) / (predictedOutput * (1 - predictedOutput));
 		}
 
 		public CostType CostFunctionType()

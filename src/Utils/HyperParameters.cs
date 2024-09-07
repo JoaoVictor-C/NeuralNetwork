@@ -14,6 +14,7 @@ public class HyperParameters
     public double minibatchSize;
     public double momentum;
     public double regularization;
+    public int seed;
     public int[] layerSizes;
     public int epochs;
     public double trainTestSplit;
