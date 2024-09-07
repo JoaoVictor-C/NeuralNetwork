@@ -28,3 +28,39 @@ D:\JV\JoaoVictor\Projetos Pessoais\NeuralNetwork-Project\obj\Debug\net8.0-window
 D:\JV\JoaoVictor\Projetos Pessoais\NeuralNetwork-Project\obj\Debug\net8.0-windows\NeuralNetwork.genruntimeconfig.cache
 D:\JV\JoaoVictor\Projetos Pessoais\NeuralNetwork-Project\obj\Debug\net8.0-windows\ref\NeuralNetwork.dll
 D:\JV\JoaoVictor\Projetos Pessoais\NeuralNetwork-Project\bin\Debug\net8.0-windows\Newtonsoft.Json.dll
+C:\JoaoVictor\Estudos\NeuralNetwork\bin\Debug\net8.0-windows\NeuralNetwork.exe
+C:\JoaoVictor\Estudos\NeuralNetwork\bin\Debug\net8.0-windows\NeuralNetwork.deps.json
+C:\JoaoVictor\Estudos\NeuralNetwork\bin\Debug\net8.0-windows\NeuralNetwork.runtimeconfig.json
+C:\JoaoVictor\Estudos\NeuralNetwork\bin\Debug\net8.0-windows\NeuralNetwork.dll
+C:\JoaoVictor\Estudos\NeuralNetwork\bin\Debug\net8.0-windows\NeuralNetwork.pdb
+C:\JoaoVictor\Estudos\NeuralNetwork\bin\Debug\net8.0-windows\MathLibrary.dll
+C:\JoaoVictor\Estudos\NeuralNetwork\bin\Debug\net8.0-windows\MathNet.Numerics.dll
+C:\JoaoVictor\Estudos\NeuralNetwork\bin\Debug\net8.0-windows\Newtonsoft.Json.dll
+C:\JoaoVictor\Estudos\NeuralNetwork\bin\Debug\net8.0-windows\ScottPlot.dll
+C:\JoaoVictor\Estudos\NeuralNetwork\bin\Debug\net8.0-windows\SkiaSharp.dll
+C:\JoaoVictor\Estudos\NeuralNetwork\bin\Debug\net8.0-windows\System.Configuration.ConfigurationManager.dll
+C:\JoaoVictor\Estudos\NeuralNetwork\bin\Debug\net8.0-windows\System.Diagnostics.EventLog.dll
+C:\JoaoVictor\Estudos\NeuralNetwork\bin\Debug\net8.0-windows\System.Diagnostics.PerformanceCounter.dll
+C:\JoaoVictor\Estudos\NeuralNetwork\bin\Debug\net8.0-windows\System.Security.Cryptography.ProtectedData.dll
+C:\JoaoVictor\Estudos\NeuralNetwork\bin\Debug\net8.0-windows\runtimes\linux-arm\native\libSkiaSharp.so
+C:\JoaoVictor\Estudos\NeuralNetwork\bin\Debug\net8.0-windows\runtimes\linux-arm64\native\libSkiaSharp.so
+C:\JoaoVictor\Estudos\NeuralNetwork\bin\Debug\net8.0-windows\runtimes\linux-musl-x64\native\libSkiaSharp.so
+C:\JoaoVictor\Estudos\NeuralNetwork\bin\Debug\net8.0-windows\runtimes\linux-x64\native\libSkiaSharp.so
+C:\JoaoVictor\Estudos\NeuralNetwork\bin\Debug\net8.0-windows\runtimes\osx\native\libSkiaSharp.dylib
+C:\JoaoVictor\Estudos\NeuralNetwork\bin\Debug\net8.0-windows\runtimes\win-arm64\native\libSkiaSharp.dll
+C:\JoaoVictor\Estudos\NeuralNetwork\bin\Debug\net8.0-windows\runtimes\win-x64\native\libSkiaSharp.dll
+C:\JoaoVictor\Estudos\NeuralNetwork\bin\Debug\net8.0-windows\runtimes\win-x86\native\libSkiaSharp.dll
+C:\JoaoVictor\Estudos\NeuralNetwork\bin\Debug\net8.0-windows\runtimes\win\lib\net8.0\System.Diagnostics.EventLog.dll
+C:\JoaoVictor\Estudos\NeuralNetwork\bin\Debug\net8.0-windows\runtimes\win\lib\net8.0\System.Diagnostics.PerformanceCounter.dll
+C:\JoaoVictor\Estudos\NeuralNetwork\obj\Debug\net8.0-windows\NeuralNetwork.csproj.AssemblyReference.cache
+C:\JoaoVictor\Estudos\NeuralNetwork\obj\Debug\net8.0-windows\NeuralNetwork.GeneratedMSBuildEditorConfig.editorconfig
+C:\JoaoVictor\Estudos\NeuralNetwork\obj\Debug\net8.0-windows\NeuralNetwork.AssemblyInfoInputs.cache
+C:\JoaoVictor\Estudos\NeuralNetwork\obj\Debug\net8.0-windows\NeuralNetwork.AssemblyInfo.cs
+C:\JoaoVictor\Estudos\NeuralNetwork\obj\Debug\net8.0-windows\NeuralNetwork.csproj.CoreCompileInputs.cache
+C:\JoaoVictor\Estudos\NeuralNetwork\obj\Debug\net8.0-windows\NeuralNetwork.sourcelink.json
+C:\JoaoVictor\Estudos\NeuralNetwork\obj\Debug\net8.0-windows\NeuralNe.3CC73622.Up2Date
+C:\JoaoVictor\Estudos\NeuralNetwork\obj\Debug\net8.0-windows\NeuralNetwork.dll
+C:\JoaoVictor\Estudos\NeuralNetwork\obj\Debug\net8.0-windows\refint\NeuralNetwork.dll
+C:\JoaoVictor\Estudos\NeuralNetwork\obj\Debug\net8.0-windows\NeuralNetwork.pdb
+C:\JoaoVictor\Estudos\NeuralNetwork\obj\Debug\net8.0-windows\NeuralNetwork.genruntimeconfig.cache
+C:\JoaoVictor\Estudos\NeuralNetwork\obj\Debug\net8.0-windows\ref\NeuralNetwork.dll

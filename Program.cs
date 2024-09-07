@@ -14,7 +14,7 @@ public class Program
 		Console.WriteLine("Starting neural network training and testing...");
 
 		HyperParameters hyperParameters = HyperParameters.LoadFromJson("src/NeuralNetwork/parameters.json");
-		Console.WriteLine($"Loaded hyperparameters: Epochs={hyperParameters.epochs}, Learning Rate={hyperParameters.initialLearningRate}, Regularization={hyperParameters.regularization}, Momentum={hyperParameters.momentum}");
+		Console.WriteLine($"Loaded hyperparameters: Epochs={hyperParameters.epochs} - Learning Rate={hyperParameters.initialLearningRate} - Regularization={hyperParameters.regularization} - Momentum={hyperParameters.momentum}");
 
 		string ImagePath = "data/train-images.idx3-ubyte";
 		string LabelPath = "data/train-labels.idx1-ubyte";
@@ -36,7 +36,6 @@ public class Program
 
 		// We will train our neural network with the data we loaded
 		Console.WriteLine($"Loaded {data.Length} data points");
-		Console.WriteLine($"Training set size: {trainData.Length}, Test set size: {testData.Length}");
 		Console.WriteLine("Initializing neural network...");
 		NeuralNetwork.NeuralNetwork network = new NeuralNetwork.NeuralNetwork(hyperParameters.layerSizes);
 

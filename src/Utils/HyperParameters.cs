@@ -11,7 +11,7 @@ public class HyperParameters
     public NeuralNetwork.Cost.Cost.CostType costType;
     public double initialLearningRate;
     public double learnRateDecay;
-    public double minibatchSize;
+    public int minibatchSize;
     public double momentum;
     public double regularization;
     public int seed;
