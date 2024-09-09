@@ -1,0 +1,56 @@
+{
+    "mnist": {
+        "layers": [784, 128, 64, 32, 10],
+        "epochs": 40,
+        "learning_rate": 0.001,
+        "batch_size": 64,
+        "patience": 5,
+        "cost_function": "cross_entropy",
+        "output_activation": "softmax",
+        "activation_function": "relu",
+        "optimizer": "adam",
+        "lr_scheduler": "exponential",
+        "lr_step": 1,
+        "lr_decay": 0.99,
+        "regularization": {
+            "type": "l2",
+            "lambda": 0.001
+        }
+    },
+    "mnist-fashion":{
+        "layers": [784, 256, 128, 64, 10],
+        "epochs": 40,
+        "learning_rate": 0.005,
+        "batch_size": 64,
+        "patience": 5,
+        "cost_function": "cross_entropy",
+        "output_activation": "softmax",
+        "activation_function": "relu",
+        "optimizer": "adam",
+        "lr_scheduler": "exponential",
+        "lr_step": 1,
+        "lr_decay": 0.99,
+        "regularization": {
+            "type": "l2",
+            "lambda": 0.001
+        }
+    },
+    "iris":{
+        "layers": [4, 32, 16, 3],
+        "epochs": 300,
+        "learning_rate": 0.01,
+        "batch_size": 8,
+        "patience": 5,
+        "cost_function": "cross_entropy",
+        "output_activation": "softmax",
+        "activation_function": "relu",
+        "optimizer": "adam",
+        "lr_scheduler": "exponential",
+        "lr_step": 1,
+        "lr_decay": 0.99,
+        "regularization": {
+            "type": "l2",
+            "lambda": 0.01
+        }
+    }
+}

@@ -1,0 +1,61 @@
+{
+    "sgd": {
+        "learning_rate": 0.001,
+        "momentum": 0.9,
+        "velocity": 0
+    },
+    "adam": {
+        "learning_rate": 0.001,
+        "beta1": 0.9,
+        "beta2": 0.999,
+        "epsilon": 1e-8
+    },
+    "rmsprop": {
+        "learning_rate": 0.001,
+        "rho": 0.9,
+        "epsilon": 1e-8
+    },
+    "adagrad": {
+        "learning_rate": 0.01,
+        "epsilon": 1e-8
+    },
+    "adadelta": {
+        "learning_rate": 0.01,
+        "rho": 0.95,
+        "epsilon": 1e-8
+    },
+    "adamax": {
+        "learning_rate": 0.01,
+        "beta1": 0.9,
+        "beta2": 0.999,
+        "epsilon": 1e-8
+    },
+    "nadam": {
+        "learning_rate": 0.001,
+        "beta1": 0.9,
+        "beta2": 0.999,
+        "epsilon": 1e-8
+    },
+    "pso": {
+        "learning_rate": 0.001,
+        "inertia_weight": 0.7,
+        "cognitive_weight": 1.5,
+        "social_weight": 1.5,
+        "particle_count": 30,
+        "max_iterations": 100,
+        "min_velocity": -0.5,
+        "max_velocity": 0.5
+    },
+    "momentum": {
+        "learning_rate": 0.001,
+        "momentum": 0.9,
+        "beta": 0.9,
+        "v": 0
+    },
+    "nesterov": {
+        "learning_rate": 0.001,
+        "momentum": 0.9,
+        "beta": 0.9,
+        "v": 0
+    }
+}
