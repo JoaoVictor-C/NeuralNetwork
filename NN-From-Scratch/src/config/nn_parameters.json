@@ -1,0 +1,57 @@
+{
+    "mnist": {
+        "layers": [784, 256, 128, 64, 10],
+        "epochs": 50,
+        "batch_size": 128,
+        "patience": 7,
+        "dropout_rate": 0.2,
+        "num_models": 1,
+        "use_batch_norm": false,
+        "cost_function": "cross_entropy",
+        "output_activation": "softmax",
+        "activation_function": "relu",
+        "optimizer": "Adam",
+        "learning_rate": {
+            "learning_rate": 0.001,
+            "lr_scheduler": "exponential",
+            "lr_step_size": 1,
+            "lr_decay": 0.98,
+            "lr_min": 0.0001,
+            "lr_T_max": 10,
+            "lr_warm_up_epochs": 5,
+            "lr_use_warm_up": false
+        },
+        "regularization": {
+            "type": "l1_l2",
+            "lambda": 0.0001
+        }
+    },
+    "mnist-fashion":{
+        "layers": [784, 256, 128, 64, 10],
+        "epochs": 40,
+        "batch_size": 64,
+        "patience": 10,
+        "dropout_rate": 0.1,
+        "num_models": 1,
+        "use_batch_norm": true,
+        "cost_function": "cross_entropy",
+        "output_activation": "softmax",
+        "activation_function": "relu",
+        "optimizer": "Adam",
+        "learning_rate": {
+            "learning_rate": 0.001,
+            "lr_scheduler": "exponential",
+            "lr_step_size": 1,
+            "lr_decay": 0.99,
+            "lr_min": 0.0001,
+            "lr_T_max": 10,
+            "lr_warm_up_epochs": 5,
+            "lr_use_warm_up": false
+        },
+        "regularization": {
+            "type": "l1_l2",
+            "lambda": 0.0091,
+            "alpha": 0.001
+        }
+    }
+}

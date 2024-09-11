@@ -1,0 +1,26 @@
+{
+    "mnist":{   
+        "train_test_split_ratio": 0.8571428571428571,
+        "input_size": 784,
+        "output_size": 10,
+        "images_path": "data/mnist/combined-images.idx3-ubyte",
+        "labels_path": "data/mnist/combined-labels.idx1-ubyte",
+        "num_samples": 70000
+    },
+    "mnist-fashion":{
+        "train_test_split_ratio": 0.8,
+        "input_size": 784,
+        "output_size": 10,
+        "images_path": "data/mnist-fashion/train-images-idx3-ubyte",
+        "labels_path": "data/mnist-fashion/train-labels-idx1-ubyte",
+        "num_samples": 60000
+    },
+    "iris":{
+        "train_test_split_ratio": 0.8,
+        "input_size": 4,
+        "output_size": 3,
+        "images_path": "../data/iris_X.npy",
+        "labels_path": "../data/iris_y.npy",
+        "num_samples": 150
+    }
+}
