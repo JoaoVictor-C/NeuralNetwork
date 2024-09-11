@@ -1,8 +1,9 @@
 import numpy as np
-import json
-from ..activation import Activation
-from ..optimizers import Optimizers
-from ..regularization import Regularization
+from ..neural_components.optimizers.optimizers import Optimizers
+from ..neural_components.regularization.regularization import Regularization
+from ..neural_components.normalization.batch_normalization import BatchNormalization
+from ..utils.fancy_print import fancy_print
+from ..neural_components.activation import Activation
 
 class Layer:
     def __init__(self, input_size, neurons, activation, config):
@@ -19,11 +20,17 @@ class Layer:
         self.optimizer = Optimizers(config['optimizer']).get_optimizer()
         self.regularization = Regularization(config['regularization']['type'], config['regularization']['lambda'])
 
+        self.use_batch_norm = config['use_batch_norm']
+        if self.use_batch_norm:
+            self.batch_norm = BatchNormalization(neurons)
+
     def forward(self, inputs):
         self.inputs = inputs
         inputs_reshaped = inputs.reshape(inputs.shape[0], -1)
         self.z = np.dot(inputs_reshaped, self.weights) + self.biases
         self.output = self.activation.forward(self.z)
+        if self.use_batch_norm:
+            self.output = self.batch_norm.forward(self.output)
         return self.output
 
     def backward(self, delta, num_samples):
@@ -32,7 +39,10 @@ class Layer:
             delta_activated = delta
         else:
             delta_activated = delta * self.activation.derivative(self.output)
-        
+
+        if self.use_batch_norm:
+            delta_activated = self.batch_norm.backward(delta_activated)
+
         self.dweights = np.dot(self.inputs.reshape(self.inputs.shape[0], -1).T, delta_activated) / num_samples
         self.dbiases = np.sum(delta_activated, axis=0, keepdims=True) / num_samples
         
@@ -49,3 +59,15 @@ class Layer:
     def get_regularization_loss(self):
         reg_term, _ = self.regularization.regularize(self.weights)
         return reg_term
+    
+    def get_weights(self):
+        return self.weights
+    
+    def set_weights(self, weights):
+        self.weights = weights
+    
+    def get_biases(self):
+        return self.biases
+    
+    def set_biases(self, biases):
+        self.biases = biases

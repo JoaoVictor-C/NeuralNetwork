@@ -1,5 +1,6 @@
-from ..activation import Activation
-from ..cost import Cost
+from ..neural_components.learning_rate import LearningRateScheduler
+from ..neural_components.activation import Activation
+from ..neural_components.cost import Cost
 from .layer import Layer
 from ..utils import fancy_print
 import numpy as np
@@ -15,21 +16,30 @@ def fancy_print(message, color=Fore.WHITE, style=Style.NORMAL):
     print(f"{style}{color}{message}{Style.RESET_ALL}")
 
 class NeuralNetwork:
-    def __init__(self, dataset):
-        fancy_print("Initializing Neural Network...", Fore.CYAN, Style.BRIGHT)
+    def __init__(self, dataset, model_index=None,  verbose=True):
+        if verbose:
+            fancy_print(f"Initializing Neural Network {model_index}...", Fore.CYAN, Style.BRIGHT)
         self.load_config(dataset)
         self.activation = Activation()
         self.layers = []
         self.create_layers()
-        
+        self.model_index = model_index
         self.cost = Cost()
         self.cost_function = self.cost.get_cost_function(self.config['cost_function'])
-
+        self.verbose = verbose
         self.training_acc = []
         self.training_loss = []
+        self.test_acc = []
 
-        self.lr_scheduler = self.get_lr_scheduler()
-        fancy_print("Neural Network initialized successfully!", Fore.GREEN)
+        self.lr_scheduler = LearningRateScheduler(self.config)
+
+        if verbose:
+            fancy_print(f"Neural Network {model_index} initialized successfully!", Fore.GREEN)
+
+        self.best_loss = float('inf')
+        self.best_model = None
+        self.patience = self.config['patience']
+        self.no_improvement_count = 0
 
     def load_config(self, dataset):
         with open('src/config/NN_parameters.json', 'r') as f:
@@ -47,11 +57,15 @@ class NeuralNetwork:
             if i == len(layer_sizes) - 2:
                 # Output layer
                 activation = self.activation.get_activation_function(self.config['output_activation'])
+                use_batch_norm = False  # Don't use batch norm for output layer
             else:
                 # Input and hidden layers
                 activation = self.activation.get_activation_function(self.config['activation_function'])
+                use_batch_norm = self.config.get('use_batch_norm', False)
             
-            self.layers.append(Layer(input_size, output_size, activation, self.config))
+            layer_config = self.config.copy()
+            layer_config['use_batch_norm'] = use_batch_norm
+            self.layers.append(Layer(input_size, output_size, activation, layer_config))
 
     def forward_propagation(self, X):
         output = X
@@ -61,129 +75,172 @@ class NeuralNetwork:
 
     def backward_propagation(self, y_true, y_pred):
         delta = self.cost_function.derivative(y_true, y_pred)
+
+        num_samples = y_true.shape[0]
         
         for layer in reversed(self.layers):
-            delta = layer.backward(delta, self.base_config['num_samples'])
+            delta = layer.backward(delta, num_samples)
 
-    def train(self, input, label):
-        fancy_print("Starting training process...\n", Fore.MAGENTA, Style.BRIGHT)
+    def train(self, X_train, y_train, X_test, y_test):
+        if self.verbose:
+            fancy_print(f"Starting training process for model {self.model_index}...\n", Fore.MAGENTA, Style.BRIGHT)
+
         epochs = self.config['epochs']
         batch_size = self.config['batch_size']
-        start_time = time.time()
-        patience = self.config['patience']
-        best_loss = 0
-        no_improvement_count = 0
 
         for epoch in range(epochs):
-            current_lr = self.lr_scheduler(epoch)
+            current_lr = self.lr_scheduler.get_lr_scheduler()(epoch)
             for layer in self.layers:
                 layer.optimizer.learning_rate = current_lr
             
-            epoch_start_time = time.time()
+            if self.verbose:
+                epoch_start_time = time.time()
 
             # Shuffle the data
-            indices = np.arange(input.shape[0])
+            indices = np.arange(X_train.shape[0])
             np.random.shuffle(indices)
-            input_shuffled = input[indices]
-            label_shuffled = label[indices]
+            X_train_shuffled = X_train[indices]
+            y_train_shuffled = y_train[indices]
+
+            # Set training mode for all layers
+            for layer in self.layers:
+                if hasattr(layer, 'use_batch_norm') and layer.use_batch_norm:
+                    layer.batch_norm.training = True
 
             # Process batches
-            num_batches = len(input) // batch_size
+            num_batches = len(X_train_shuffled) // batch_size
             for i in range(num_batches):
                 start = i * batch_size
                 end = start + batch_size
-                X_batch = input_shuffled[start:end]
-                y_batch = label_shuffled[start:end]
+                X_batch = X_train_shuffled[start:end]
+                y_batch = y_train_shuffled[start:end]
 
                 self.train_batch(X_batch, y_batch)
-            
+
             # Process remaining samples
-            if len(input) % batch_size != 0:
+            if len(X_train_shuffled) % batch_size != 0:
                 start = num_batches * batch_size
-                X_batch = input_shuffled[start:]
-                y_batch = label_shuffled[start:]
+                X_batch = X_train_shuffled[start:]
+                y_batch = y_train_shuffled[start:]
 
                 self.train_batch(X_batch, y_batch)
+            # Remove processing of remaining samples to speed up training
             
-            # Compute loss on full dataset
-            y_pred_full = self.predict(input)
-            loss = self.cost_function.loss(label, y_pred_full)
+            # Compute loss on a subset of the training data
+            subset_size = min(10000, len(X_train))
+            indices = np.random.choice(len(X_train), subset_size, replace=False)
+            X_subset = X_train[indices]
+            y_subset = y_train[indices]
+            y_pred_subset = self.predict(X_subset)
+            loss = self.cost_function.loss(y_subset, y_pred_subset)
             
             # Clip the loss to avoid overflow
             loss = np.clip(loss, -1e10, 1e10)
 
-            training_accuracy = self.evaluate(input_shuffled, label_shuffled)
+            improvement = self.check_and_save_best_model(loss)
 
-            self.training_loss.append(loss)
-            self.training_acc.append(training_accuracy)
-            
-            self.print_log(epoch, loss, epoch_start_time, training_accuracy, self.layers[0].optimizer.learning_rate)
+            if self.verbose:
+                training_accuracy = self.evaluate(X_train, y_train)
+                test_accuracy = self.evaluate(X_test, y_test)
 
-            if np.abs(best_loss - loss) < 1e-4:
-                no_improvement_count += 1
-                fancy_print(f"No improvement count: {no_improvement_count}", Fore.YELLOW)
-            else:
-                best_loss = loss
-                no_improvement_count = 0
+                self.training_loss.append(loss)
+                self.training_acc.append(training_accuracy)
+                self.test_acc.append(test_accuracy)
 
-            if no_improvement_count >= patience:
-                fancy_print("Early stopping triggered", Fore.RED)
+                self.print_log(epoch, loss, epoch_start_time, training_accuracy, self.layers[0].optimizer.learning_rate, improvement, self.no_improvement_count, test_accuracy)
+
+            if self.no_improvement_count >= self.patience:
+                if self.verbose:
+                    fancy_print("\nEarly stopping triggered", Fore.RED)
                 break
 
-        self.final_training_log(start_time)
+        # Load the best model at the end of training
+        if self.best_model is not None:
+            self.load_best_model()
+
+        return self
 
     def train_batch(self, X_batch, y_batch):
         y_pred = self.forward_propagation(X_batch)
         self.backward_propagation(y_batch, y_pred)
 
     def predict(self, X):
+        for layer in self.layers:
+            if hasattr(layer, 'use_batch_norm') and layer.use_batch_norm:
+                layer.batch_norm.training = False
         return self.forward_propagation(X)
 
     def evaluate(self, X, y):
         y_pred = self.predict(X)
-        accuracy = np.mean(np.argmax(y_pred, axis=1) == np.argmax(y, axis=1))
+        if y.ndim == 2:
+            accuracy = np.mean(np.argmax(y_pred, axis=1) == np.argmax(y, axis=1))
+        else:
+            accuracy = np.mean(np.argmax(y_pred, axis=1) == y)
         return accuracy
     
-    def print_log(self, epoch, loss, start_time, training_accuracy, learning_rate):
+    def print_log(self, epoch, loss, start_time, training_accuracy, learning_rate, improvement, no_improvement_count, test_accuracy):
         fancy_print(f"Epoch {epoch+1}/{self.config['epochs']}", Fore.CYAN)
+        if improvement:
+            fancy_print("   Improvement: ✅", Fore.GREEN)
+        else:
+            fancy_print(f"   No improvement count: {no_improvement_count}", Fore.YELLOW)
         fancy_print(f"   Loss: {loss:.6f}", Fore.YELLOW)
         fancy_print(f"   Time: {time.time() - start_time:.2f}s", Fore.YELLOW)
         fancy_print(f"   Learning Rate: {learning_rate:.6f}", Fore.YELLOW)
         fancy_print(f"   Training Accuracy: {training_accuracy*100:.2f}%", Fore.GREEN)
+        fancy_print(f"   Test Accuracy: {test_accuracy*100:.2f}%", Fore.GREEN)
         print("\n----------------------------------\n")
 
-    def final_training_log(self, start_time):
-        fancy_print("Training completed!", Fore.GREEN, Style.BRIGHT)
-        fancy_print(f"Training Accuracy average: {np.mean(self.training_acc)*100:.2f}%", Fore.CYAN)
-        fancy_print(f"Training Loss average: {np.mean(self.training_loss):.4f}", Fore.CYAN)
-        fancy_print(f"Total training time: {time.time() - start_time:.2f}s", Fore.CYAN)
-
-    def save_model(self):
-        fancy_print("Saving model...", Fore.YELLOW)
+    def save_model(self, model_index):
+        if self.verbose:
+            fancy_print(f"Saving model_{model_index}.pkl...", Fore.YELLOW)
         model_path = 'src/models/'
-        total_models = len(os.listdir(model_path))
         if not os.path.exists(model_path):
             os.makedirs(model_path)
-        with open(model_path + f'model_{total_models}.pkl', 'wb') as f:
+        if os.path.exists(model_path + f'model_{model_index}.pkl'):
+            os.remove(model_path + f'model_{model_index}.pkl')
+        with open(model_path + f'model_{model_index}.pkl', 'wb') as f:
             pickle.dump(self, f)
-        fancy_print(f"✅ Model saved as 'model_{total_models}.pkl'", Fore.GREEN)
+        if self.verbose:
+            fancy_print("Model saved successfully", Fore.GREEN)
 
     def load_model(self, model_index):
-        fancy_print(f"Loading model_{model_index}.pkl...", Fore.YELLOW)
+        if self.verbose:
+            fancy_print(f"Loading model_{model_index}.pkl...", Fore.YELLOW)
         model_path = 'src/models/'
         if not os.path.exists(model_path):
-            fancy_print("❌ Model not found", Fore.RED)
+            if self.verbose:
+                fancy_print("❌ Model not found", Fore.RED)
             raise FileNotFoundError("Model not found")
+        
         with open(model_path + f'model_{model_index}.pkl', 'rb') as f:
             model = pickle.load(f)
-        fancy_print("Model loaded successfully", Fore.GREEN)
+        if self.verbose:
+            fancy_print("Model loaded successfully", Fore.GREEN)
         return model
 
-    def get_lr_scheduler(self):
-        scheduler_type = self.config.get('lr_scheduler', 'constant')
-        if scheduler_type == 'step':
-            return lambda epoch: self.config['learning_rate'] * (self.config['lr_decay'] ** (epoch // self.config['lr_step']))
-        elif scheduler_type == 'exponential':
-            return lambda epoch: self.config['learning_rate'] * (self.config['lr_decay'] ** epoch)
+
+
+    def check_and_save_best_model(self, loss):
+        if loss < self.best_loss:
+            self.best_loss = loss
+            self.best_model = self.get_model_state()
+            self.no_improvement_count = 0
+            return True
         else:
-            return lambda epoch: self.config['learning_rate']
+            self.no_improvement_count += 1
+            return False
+
+    def get_model_state(self):
+        return [layer.get_weights() for layer in self.layers] + [layer.get_biases() for layer in self.layers]
+
+    def set_model_state(self, state):
+        for layer, weights in zip(self.layers, state):
+            layer.set_weights(weights)
+            
+
+    def load_best_model(self):
+        if self.best_model is not None:
+            self.set_model_state(self.best_model)
+            if self.verbose:
+                fancy_print("Best model loaded successfully", Fore.GREEN)

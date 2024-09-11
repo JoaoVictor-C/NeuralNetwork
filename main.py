@@ -1,10 +1,11 @@
 import numpy as np
-from src.core import NeuralNetwork
-from src.data_handling import DataHandler
+from src.neural_components.ensemble.ensemble import Ensemble
+from src.utils.data_handling import DataHandler
 from src.utils import fancy_print
 import json
 from colorama import init, Fore, Style
 import time
+from src.core.neural_network import NeuralNetwork
 
 init(autoreset=True)  # Initialize colorama
 
@@ -14,11 +15,8 @@ def load_config(file_path):
     with open(file_path, 'r') as f:
         return json.load(f)
 
-def fancy_print(message, color=Fore.WHITE, style=Style.NORMAL):
-    print(f"{style}{color}{message}{Style.RESET_ALL}")
-
 def main():
-    fancy_print("Starting Neural Network Training", Fore.CYAN, Style.BRIGHT)
+    fancy_print("Starting Neural Network Ensemble Training", Fore.CYAN, Style.BRIGHT)
     fancy_print("Dataset: " + DATASET, Fore.CYAN, Style.BRIGHT)
     
     fancy_print("Loading configuration...", Fore.YELLOW)
@@ -27,18 +25,15 @@ def main():
 
     data_handler = DataHandler(config)
 
-    start_time = time.time()
     X_train, y_train, X_test, y_test = data_handler.load_data(config['train_test_split_ratio'])
 
-    nn = NeuralNetwork(DATASET)
+    ensemble = Ensemble(DATASET)
+    fancy_print("Training ensemble...", Fore.YELLOW)
+    ensemble.train(X_train, y_train, X_test, y_test)
 
-    start_time = time.time()
-    nn.train(X_train, y_train)
-
-    fancy_print("Evaluating model on test data...", Fore.YELLOW)
-    accuracy = nn.evaluate(X_test, y_test)
+    fancy_print("Evaluating ensemble on test data...", Fore.YELLOW)
+    accuracy = ensemble.evaluate(X_test, y_test)
     fancy_print(f"Test accuracy: {accuracy*100:.2f}%", Fore.GREEN, Style.BRIGHT)
-
 
 if __name__ == "__main__":
     main()
