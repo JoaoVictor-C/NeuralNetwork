@@ -30,7 +30,7 @@ def create_checkpoint_callback(config, fold):
         folder_name += f'_fold_{fold + 1}'
     os.makedirs(folder_name)
 
-    save_freq = 'epoch' if config['data']['batch_size'] in (None, 0) else config['data']['batch_size']
+    save_freq = 'epoch'
     
     return tf.keras.callbacks.ModelCheckpoint(
         filepath=f'{folder_name}/cp-{{epoch:04d}}.weights.h5', 
@@ -47,8 +47,15 @@ def create_early_stopping_callback(config):
     )
 
 def create_lr_scheduler_callback(config):
+    def lr_schedule(epoch, lr):
+        if epoch < config['training']['epochs']:
+            return config['training']['callbacks']['lr_scheduler']['lr'] * \
+                   config['training']['callbacks']['lr_scheduler']['lr_decay_rate'] ** \
+                   (epoch // config['training']['callbacks']['lr_scheduler']['lr_step_size'])
+        return lr
+
     return tf.keras.callbacks.LearningRateScheduler(
-        schedule=lambda epoch: config['training']['callbacks']['lr_scheduler']['lr'] * config['training']['callbacks']['lr_scheduler']['lr_decay_rate'] ** (epoch // config['training']['callbacks']['lr_scheduler']['lr_step_size']),
+        schedule=lr_schedule,
         verbose=0
     )
 

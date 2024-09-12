@@ -1,6 +1,6 @@
 # Neural Network Configuration Guide
 
-This README provides an overview of the configuration options available for your neural network models using TensorFlow. The configuration is typically stored in a YAML file (e.g., `config.yaml`) and allows you to customize various aspects of your model architecture, training process, and data handling.
+This README provides an overview of the configuration options available for your neural network models using TensorFlow. The configuration is typically stored in a YAML file (e.g., `mnist_config.yaml`) and allows you to customize various aspects of your model architecture, training process, and data handling.
 
 ## Configuration Sections
 
@@ -28,7 +28,6 @@ In the `model` section, you can define the layers of your neural network. Availa
 - RandomRotation
 - RandomFlip
 
-
 For each layer, you can specify various parameters such as filters, kernel size, activation function, and more.
 
 #### Available Activation Functions
@@ -48,12 +47,15 @@ The `training` section allows you to set up various training parameters:
 - Metrics
 - Number of epochs
 - Validation split
-- Checkpointing
-- Batch size
-- Early stopping
-- Learning rate scheduling
-- Tensorboard logging
-- Regularization (L1 and L2)
+- Callbacks:
+  - Checkpointing
+  - Early stopping
+  - Tensorboard logging
+  - Regularization (L1 and L2)
+  - Learning rate scheduling
+- Learning rate
+- Learning rate step size
+- Learning rate decay rate
 
 #### Available Optimizers
 
@@ -86,7 +88,16 @@ In the `data` section, you can configure:
 - Data normalization
 - Dataset selection
 - Input shape
-- Data augmentation options (if enabled)
+- Data augmentation options (if enabled):
+  - Rotation range
+  - Width shift range
+  - Height shift range
+  - Zoom range
+  - Horizontal flip
+  - Fill mode
+- Batch size
+- Shuffle
+- Random seed
 
 Datasets available (from tf.keras.datasets):
 
@@ -98,16 +109,16 @@ Datasets available (from tf.keras.datasets):
 
 ## Example Configuration
 
-For an example of how to structure your configuration file, please refer to the `config.yaml` file in this directory.
+For an example of how to structure your configuration file, please refer to the `mnist_config.yaml` file in this directory.
 
 ## Creating Your Own Configuration
 
 To create a configuration for your specific dataset and model architecture:
 
-1. Copy the example `config.yaml` file.
+1. Copy the example `mnist_config.yaml` file.
 2. Modify the sections according to your requirements.
 3. Ensure all required fields are filled out.
-4. Save the file with a descriptive name, e.g., `mnist_config.yaml` for an MNIST dataset configuration.
+4. Save the file with a descriptive name, e.g., `custom_config.yaml` for your custom dataset configuration.
 
 Remember to adjust the model architecture, training parameters, and data handling options to best suit your specific machine learning task and dataset.
 

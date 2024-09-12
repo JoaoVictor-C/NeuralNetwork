@@ -10,9 +10,9 @@ import cv2
 import tensorflow as tf
 from models.model import create_model
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_agg import FigureCanvasAgg
 from colorama import Fore
 import pygame.gfxdraw
+from utils.preprocessing import load_config
 
 pygame.init()
 
@@ -31,17 +31,18 @@ def fancy_print(text, color):
     print(color + text + Fore.RESET)
 
 def load_model():
-    model = create_model()
+    config = load_config('config/mnist_config.yaml')
+    model = create_model(config)
     model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
     
     # Check if there are saved weights
-    checkpoints_dir = 'checkpoints/model_10_fold_1'
+    checkpoints_dir = 'checkpoints/model_13_fold_1'
     if os.path.exists(checkpoints_dir):
         # Get the latest checkpoint file
         checkpoint_files = [f for f in os.listdir(checkpoints_dir) if f.endswith('.weights.h5')]
         if checkpoint_files:
             latest_checkpoint = max(checkpoint_files, key=lambda x: int(x[3:7]))
-            epoch = int(latest_checkpoint[3:7])
+            epoch = int(latest_checkpoint[3:7])-2
         else:
             epoch = 0
         latest_checkpoint = os.path.join(checkpoints_dir, f'cp-{epoch:04d}.weights.h5')
