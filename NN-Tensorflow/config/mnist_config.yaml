@@ -26,7 +26,6 @@ model:
         activation: softmax
 
 training:
-  
   optimizer: adam 
   loss: sparse_categorical_crossentropy
   metrics: [accuracy]
@@ -63,7 +62,7 @@ data:
     horizontal_flip: true
     fill_mode: nearest
     
-  batch_size: 32
+  batch_size: 64
   shuffle: true
   seed: 42
 

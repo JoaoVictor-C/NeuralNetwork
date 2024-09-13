@@ -68,10 +68,7 @@ def create_model(config: Dict[str, Any], compile: bool = True) -> tf.keras.Model
 
     model.summary()
 
-    if compile:
-        compile_model(model, config)
-
-    return model
+    return compile_model(model, config)
 
 
 
@@ -79,16 +76,17 @@ def compile_model(model, config):
     model.compile(
         optimizer=config['training']['optimizer'],
         loss=config['training']['loss'],
-        metrics=config['training']['metrics']
+        metrics=config['training']['metrics'],
     )
     return model
 
-def train_model(model, X_train, y_train, X_val, y_val, datagen, config, callbacks):
+def train_model(model, train_dataset, val_dataset, config, callbacks, train_size, val_size):
     return model.fit(
-        datagen.flow(X_train, y_train, batch_size=config['data']['batch_size']),
-        steps_per_epoch=len(X_train) // config['data']['batch_size'],
+        train_dataset,
+        steps_per_epoch=train_size // config['data']['batch_size'],
         epochs=config['training']['epochs'], 
-        validation_data=(X_val, y_val),
+        validation_data=val_dataset,
+        validation_steps=val_size // config['data']['batch_size'] if val_dataset else None,
         callbacks=callbacks
     )
 

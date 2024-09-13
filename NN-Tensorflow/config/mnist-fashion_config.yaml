@@ -1,0 +1,66 @@
+model:
+  layers:
+    - conv2d:
+        filters: 32
+        kernel_size: [3, 3]
+        activation: relu
+        input_shape: [28, 28, 1]
+    - maxpooling2d:
+        pool_size: [2, 2]
+    - conv2d:
+        filters: 64
+        kernel_size: [3, 3]
+        activation: relu
+    - maxpooling2d:
+        pool_size: [2, 2]
+    - conv2d:
+        filters: 64
+        kernel_size: [3, 3]
+        activation: relu
+    - flatten: {}
+    - dense:
+        units: 64
+        activation: relu
+    - dense:
+        units: 10
+        activation: softmax
+
+training:
+  optimizer: adam 
+  loss: sparse_categorical_crossentropy
+  metrics: [accuracy]
+  epochs: 100
+  validation_split: 0.2
+  callbacks:
+    checkpoint: 
+        enabled: true
+    early_stopping: 
+        enabled: true
+        patience: 10
+    tensorboard: 
+        enabled: true
+    regularization:
+        enabled: true
+        l1: 0.0001
+        l2: 0.0001
+    lr_scheduler: 
+        enabled: true
+        lr: 0.001
+        lr_step_size: 1
+        lr_decay_rate: 0.97
+data:
+  normalize: true
+  dataset: fashion_mnist
+  input_shape: [28, 28]
+  augmentation:
+    enabled: false
+    rotation_range: 30
+    width_shift_range: 0.2
+    height_shift_range: 0.2
+    zoom_range: 0.2
+    horizontal_flip: true
+    fill_mode: nearest
+    
+  batch_size: 64
+  shuffle: true
+  seed: 42

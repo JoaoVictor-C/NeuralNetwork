@@ -1,0 +1,57 @@
+model:
+  layers:
+    - dense:
+        units: 256
+        activation: relu
+        input_shape: [11]
+    - dense:
+        units: 128
+        activation: relu
+    - dense:
+        units: 64
+        activation: relu
+    - dense:
+        units: 3
+        activation: linear
+
+
+training:
+  optimizer: adam
+  loss: mse
+  metrics: [accuracy]
+  epochs: 100
+  validation_split: 0.2
+  callbacks:
+    checkpoint: 
+      enabled: true
+    early_stopping: 
+      enabled: true
+      patience: 10
+    tensorboard: 
+      enabled: true
+    regularization:
+      enabled: true
+      l1: 0.0
+      l2: 0.0
+    lr_scheduler: 
+      enabled: true
+      lr: 0.001
+      lr_step_size: 1000
+      lr_decay_rate: 0.95
+
+data:
+  normalize: true
+  dataset: snake
+  input_shape: [11]
+  batch_size: 32
+  shuffle: true
+  seed: 42
+
+training-snake:
+  n_games: 5000
+  max_memory: 100000 
+  batch_size: 1000
+  epsilon: 1
+  epsilon_min: 0.1
+  gamma: 0.95
+  epsilon_decay: 0.99

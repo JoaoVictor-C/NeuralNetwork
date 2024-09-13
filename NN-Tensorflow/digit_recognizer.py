@@ -31,29 +31,7 @@ def fancy_print(text, color):
     print(color + text + Fore.RESET)
 
 def load_model():
-    config = load_config('config/mnist_config.yaml')
-    model = create_model(config)
-    model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
-    
-    # Check if there are saved weights
-    checkpoints_dir = 'checkpoints/model_13_fold_1'
-    if os.path.exists(checkpoints_dir):
-        # Get the latest checkpoint file
-        checkpoint_files = [f for f in os.listdir(checkpoints_dir) if f.endswith('.weights.h5')]
-        if checkpoint_files:
-            latest_checkpoint = max(checkpoint_files, key=lambda x: int(x[3:7]))
-            epoch = int(latest_checkpoint[3:7])-2
-        else:
-            epoch = 0
-        latest_checkpoint = os.path.join(checkpoints_dir, f'cp-{epoch:04d}.weights.h5')
-        if latest_checkpoint:
-            model.load_weights(latest_checkpoint)
-            fancy_print(f"Model weights loaded successfully! {latest_checkpoint}", Fore.GREEN)
-        else:
-            fancy_print("No saved weights found. Using untrained model.", Fore.YELLOW)
-    else:
-        fancy_print("No checkpoints directory found. Using untrained model.", Fore.YELLOW)
-    
+    model = tf.keras.models.load_model('checkpoints/model_1/model.keras')
     return model
 
 def preprocess_image(surface):
@@ -92,10 +70,6 @@ def preprocess_image(surface):
     # Flip horizontally
     normalized = np.fliplr(normalized)
 
-    # Visualize the image
-    plt.imshow(normalized, cmap='gray')
-    plt.show()
-    
     return normalized.reshape(1, 28, 28), normalized
 
 def draw_smooth_line(surface, color, start, end, width):
@@ -109,7 +83,7 @@ def draw_smooth_line(surface, color, start, end, width):
         pygame.gfxdraw.filled_circle(surface, x, y, width // 2, color)
         pygame.gfxdraw.aacircle(surface, x, y, width // 2, color)
 
-def draw_prediction(surface, digit, probability, probabilities, indices):
+def draw_prediction(surface, digit, probability, probabilities):
     font = pygame.font.Font(None, 120)
     text = font.render(str(digit), True, TEXT_COLOR)
     
@@ -130,17 +104,16 @@ def draw_prediction(surface, digit, probability, probabilities, indices):
     total_bar_height = (bar_height + bar_margin) * 10
     start_y = (surface.get_height() - total_bar_height) // 2
     
-    for idx, i in enumerate(indices):
-        prob = probabilities[i]
+    for i, prob in enumerate(probabilities):
         bar_width = int(prob * 300)  # Scale the bar width
         bar_color = (0, 255, 0) if i == digit else (200, 200, 200)
-        pygame.draw.rect(surface, bar_color, (10, start_y + idx * (bar_height + bar_margin), bar_width, bar_height))
+        pygame.draw.rect(surface, bar_color, (10, start_y + i * (bar_height + bar_margin), bar_width, bar_height))
         
         # Draw probability percentage
         prob_text = f"{i}: {prob*100:.1f}%"
         font = pygame.font.Font(None, 50)
         text = font.render(prob_text, True, TEXT_COLOR)
-        surface.blit(text, (320, start_y + idx * (bar_height + bar_margin)))
+        surface.blit(text, (320, start_y + i * (bar_height + bar_margin)))
 
 def draw_rounded_rect(surface, color, rect, radius):
     pygame.draw.rect(surface, color, rect, border_radius=radius)
@@ -170,7 +143,7 @@ def main():
     erasing = False
     last_pos = None
     brush_size = 23
-    
+    last_image = None
     running = True
     draw_surface = pygame.Surface((width, height))
     draw_surface.fill(BACKGROUND_COLOR)
@@ -200,6 +173,7 @@ def main():
                 drawing = False
                 erasing = False
                 img_array, _ = preprocess_image(draw_surface)
+                last_image = img_array
                 prediction = model.predict(img_array, verbose=0)
                 probabilities = prediction[0]
                 predicted_digit = np.argmax(probabilities)
@@ -208,7 +182,7 @@ def main():
                 prediction_surface.fill(BACKGROUND_COLOR)
                 # Sort the probabilities in descending order
                 sorted_indices = np.argsort(probabilities)[::-1]
-                draw_prediction(prediction_surface, predicted_digit, probabilities[predicted_digit], probabilities, sorted_indices)
+                draw_prediction(prediction_surface, predicted_digit, probabilities[predicted_digit], probabilities)
 
             elif event.type == pygame.MOUSEMOTION and drawing:
                 current_pos = pygame.mouse.get_pos()
@@ -230,6 +204,11 @@ def main():
                     brush_size = min(50, brush_size + 1)
                 elif event.key == pygame.K_DOWN:
                     brush_size = max(1, brush_size - 1)
+                elif event.key == pygame.K_s:
+                    # Show the last image
+                    if last_image is not None:
+                        plt.imshow(last_image.reshape(28, 28), cmap='gray')
+                        plt.show()
         
         # Draw the drawable area
         screen.blit(draw_surface, (0, 0))
@@ -255,6 +234,7 @@ def main():
             "Right-click to erase",
             "Press 'C' to clear",
             "Use Up/Down arrows to adjust brush size",
+            "Press 'S' to show how the neural network sees the digit"
             "For best results, draw in the active area"
         ]
         for i, text in enumerate(instructions):
