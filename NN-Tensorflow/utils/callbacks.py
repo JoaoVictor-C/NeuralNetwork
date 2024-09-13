@@ -44,17 +44,26 @@ def create_early_stopping_callback(config):
     )
 
 def create_lr_scheduler_callback(config):
-    def lr_schedule(epoch, lr):
-        if epoch < config['training']['epochs']:
-            return config['training']['callbacks']['lr_scheduler']['lr'] * \
-                   config['training']['callbacks']['lr_scheduler']['lr_decay_rate'] ** \
-                   (epoch // config['training']['callbacks']['lr_scheduler']['lr_step_size'])
+    initial_lr = config['training']['callbacks']['lr_scheduler']['lr']
+    lr_step_size = config['training']['callbacks']['lr_scheduler']['lr_step_size']
+    lr_decay_rate = config['training']['callbacks']['lr_scheduler']['lr_decay_rate']
+    
+    def scheduler(epoch, lr):
+        if config['training']['callbacks']['lr_scheduler']['type'] == 'exponential':
+            if epoch % lr_step_size == 0 and epoch:
+                return lr * lr_decay_rate
+        elif config['training']['callbacks']['lr_scheduler']['type'] == 'step':
+            if epoch % lr_step_size == 0 and epoch:
+                return lr * lr_decay_rate
+        elif config['training']['callbacks']['lr_scheduler']['type'] == 'cosine':
+            if epoch % lr_step_size == 0 and epoch:
+                return lr * lr_decay_rate
+        elif config['training']['callbacks']['lr_scheduler']['type'] == 'polynomial':
+            if epoch % lr_step_size == 0 and epoch:
+                return lr * lr_decay_rate
         return lr
 
-    return tf.keras.callbacks.LearningRateScheduler(
-        schedule=lr_schedule,
-        verbose=0
-    )
+    return tf.keras.callbacks.LearningRateScheduler(scheduler)
 
 def create_tensorboard_callback():
     log_dir = f"logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")

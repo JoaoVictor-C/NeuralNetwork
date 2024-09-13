@@ -1,5 +1,4 @@
 import tensorflow as tf
-from utils.preprocessing import load_config
 
 import tensorflow as tf
 from typing import Dict, Any

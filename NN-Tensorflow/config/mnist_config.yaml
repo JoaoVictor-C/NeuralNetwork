@@ -5,22 +5,32 @@ model:
         kernel_size: [3, 3]
         activation: relu
         input_shape: [28, 28, 1]
+    - conv2d:
+        filters: 32
+        kernel_size: [3, 3]
+        activation: relu
     - maxpooling2d:
         pool_size: [2, 2]
+    - dropout:
+        rate: 0.25
+    - conv2d:
+        filters: 64
+        kernel_size: [3, 3]
+        activation: relu
     - conv2d:
         filters: 64
         kernel_size: [3, 3]
         activation: relu
     - maxpooling2d:
         pool_size: [2, 2]
-    - conv2d:
-        filters: 64
-        kernel_size: [3, 3]
-        activation: relu
+    - dropout:
+        rate: 0.25
     - flatten: {}
     - dense:
-        units: 64
+        units: 128
         activation: relu
+    - dropout:
+        rate: 0.5
     - dense:
         units: 10
         activation: softmax
@@ -47,7 +57,8 @@ training:
         enabled: true
         lr: 0.001
         lr_step_size: 1
-        lr_decay_rate: 0.97
+        lr_decay_rate: 0.995
+        type: exponential
 
 data:
   normalize: true
@@ -55,14 +66,14 @@ data:
   input_shape: [28, 28]
   augmentation:
     enabled: true
-    rotation_range: 30
-    width_shift_range: 0.2
-    height_shift_range: 0.2
-    zoom_range: 0.2
+    rotation_range: 10
+    width_shift_range: 0.3
+    height_shift_range: 0.3
+    zoom_range: 0.3
     horizontal_flip: true
-    fill_mode: nearest
+    fill_mode: constant # constant, nearest, reflect, wrap
     
-  batch_size: 64
+  batch_size: 128
   shuffle: true
   seed: 42
 

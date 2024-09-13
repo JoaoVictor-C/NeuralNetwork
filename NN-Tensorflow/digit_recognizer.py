@@ -8,11 +8,9 @@ import pygame
 import numpy as np
 import cv2
 import tensorflow as tf
-from models.model import create_model
 import matplotlib.pyplot as plt
 from colorama import Fore
 import pygame.gfxdraw
-from utils.preprocessing import load_config
 
 pygame.init()
 
@@ -31,7 +29,7 @@ def fancy_print(text, color):
     print(color + text + Fore.RESET)
 
 def load_model():
-    model = tf.keras.models.load_model('checkpoints/model_1/model.keras')
+    model = tf.keras.models.load_model('checkpoints/model_7/model.keras')
     return model
 
 def preprocess_image(surface):
@@ -55,11 +53,27 @@ def preprocess_image(surface):
     # Crop to bounding box
     cropped = arr[ymin:ymax+1, xmin:xmax+1]
 
-    # Resize to 28x28
-    resized = cv2.resize(cropped, (28, 28), interpolation=cv2.INTER_AREA)
+    # Calculate aspect ratio
+    aspect_ratio = cropped.shape[1] / cropped.shape[0]
+
+    # Resize while maintaining aspect ratio
+    if aspect_ratio > 1:
+        new_width = 20
+        new_height = int(new_width / aspect_ratio)
+    else:
+        new_height = 20
+        new_width = int(new_height * aspect_ratio)
+    
+    resized = cv2.resize(cropped, (new_width, new_height), interpolation=cv2.INTER_AREA)
+
+    # Create a new 28x28 image and place the resized digit in the center
+    new_image = np.ones((28, 28), dtype=np.uint8) * 255
+    x_offset = (28 - new_width) // 2
+    y_offset = (28 - new_height) // 2
+    new_image[y_offset:y_offset+new_height, x_offset:x_offset+new_width] = resized
 
     # Normalize to 0-1
-    normalized = resized / 255.0
+    normalized = new_image / 255.0
 
     # Invert the values
     normalized = 1 - normalized

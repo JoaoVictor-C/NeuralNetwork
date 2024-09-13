@@ -2,7 +2,7 @@ import yaml
 from sklearn.model_selection import KFold
 import numpy as np
 
-def load_config(config_path = 'config/mnist-fashion_config.yaml'):
+def load_config(config_path = 'config/mnist_config.yaml'):
     with open(config_path, 'r') as file:
         return yaml.safe_load(file)
 

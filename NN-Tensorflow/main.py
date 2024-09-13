@@ -37,8 +37,8 @@ def train_final_model(train_dataset, config, train_size):
     return model
 
 def main():
-    config = load_config()
-    train_dataset, test_dataset, train_size, test_size = load_data()
+    config = load_config('config/mnist_config.yaml')
+    train_dataset, test_dataset, train_size, test_size = load_data(config)
 
     model = create_model(config, True)
     callbacks = create_callbacks(config)

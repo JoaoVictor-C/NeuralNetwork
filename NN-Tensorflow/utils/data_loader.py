@@ -1,8 +1,6 @@
 import tensorflow as tf
-from utils.preprocessing import load_config
 
-def load_data():
-    config = load_config()
+def load_data(config):
     if config['data']['dataset'] == 'mnist':
         (X_train, y_train), (X_test, y_test) = tf.keras.datasets.mnist.load_data()
     elif config['data']['dataset'] == 'fashion_mnist':
