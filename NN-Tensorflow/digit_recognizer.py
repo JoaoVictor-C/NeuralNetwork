@@ -29,7 +29,7 @@ def fancy_print(text, color):
     print(color + text + Fore.RESET)
 
 def load_model():
-    model = tf.keras.models.load_model('checkpoints/model_7/model.keras')
+    model = tf.keras.models.load_model('checkpoints/model_1/model.keras')
     return model
 
 def preprocess_image(surface):

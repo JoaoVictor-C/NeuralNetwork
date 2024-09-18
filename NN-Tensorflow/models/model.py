@@ -1,7 +1,6 @@
 import tensorflow as tf
-
-import tensorflow as tf
 from typing import Dict, Any
+from tf_agents.networks.q_network import QNetwork
 
 def create_layer(layer_config: Dict[str, Any], regularizer: tf.keras.regularizers.Regularizer) -> tf.keras.layers.Layer:
     """Create a single layer based on the configuration."""
@@ -65,15 +64,25 @@ def create_model(config: Dict[str, Any], compile: bool = True) -> tf.keras.Model
         layer = create_layer(layer_config, regularizer)
         model.add(layer)
 
-    model.summary()
-
     return compile_model(model, config)
 
 
 
 def compile_model(model, config):
+    optimizer_name = config['training']['optimizer']
+    learning_rate = config['training']['learning_rate']
+    
+    # Instantiate optimizer with learning rate
+    if optimizer_name.lower() == 'rmsprop':
+        optimizer = tf.keras.optimizers.RMSprop(learning_rate=learning_rate)
+    elif optimizer_name.lower() == 'adam':
+        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+    # Add other optimizers as needed
+    else:
+        optimizer = optimizer_name  # Default if not specified
+
     model.compile(
-        optimizer=config['training']['optimizer'],
+        optimizer=optimizer,
         loss=config['training']['loss'],
         metrics=config['training']['metrics'],
     )
@@ -91,3 +100,12 @@ def train_model(model, train_dataset, val_dataset, config, callbacks, train_size
 
 def evaluate_model(model, X, y):
     return model.evaluate(X, y)
+
+
+def create_dqn_model(config: Dict[str, Any], input_tensor_spec, action_spec) -> QNetwork:
+    """Create and return a TensorFlow QNetwork based on the configuration."""
+    return QNetwork(
+        input_tensor_spec,
+        action_spec,
+        fc_layer_params=config['model']['layers']
+    )

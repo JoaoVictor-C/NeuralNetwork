@@ -1,276 +1,234 @@
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
-
-import pygame
 import random
+import threading
+import queue
+import time
+import gym
 import numpy as np
 import tensorflow as tf
-from collections import deque
-from utils.preprocessing import load_config
-from models.model import create_model
-from utils.callbacks import create_callbacks
+from keras import mixed_precision
+from keras.callbacks import Callback
+from models.dqn import DQNAgent  # Updated import
 from tqdm import tqdm
+from utils.preprocessing import load_config
+import pickle
+from utils.replay import replay_episode
 
-# Initialize Pygame
-pygame.init()
+# Suppress TensorFlow logging
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-# Colors
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
+# Print GPU availability
+print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
-# Game dimensions
-WIDTH = 400
-HEIGHT = 400
-GRID_SIZE = 20
-GRID_WIDTH = WIDTH // GRID_SIZE
-GRID_HEIGHT = HEIGHT // GRID_SIZE
+# Load configuration
+config = load_config('config/snake_game_config.yaml')
 
-# Initialize the screen
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Snake Game")
+# Extract training constants
+SEED = config['training']['seed']
+GAMMA = config['training']['gamma']
+BUFFER_SIZE = config['training']['buffer_size']
+BATCH_SIZE = config['training']['batch_size']
+NUM_EPISODES = config['training']['num_episodes']
+INPUT_SHAPE = config['data']['input_shape']
 
-class SnakeGame:
+ACTION_SIZE = config['data']['action_size']
+ENV_NAME = config['data']['env_name']
+
+# Configure TensorFlow for GPU memory growth
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+    try:
+        for gpu in gpus:
+            tf.config.set_memory_growth(gpu, True)
+    except RuntimeError as e:
+        tqdm.write(e)
+
+# Set mixed precision policy
+mixed_precision.set_global_policy('mixed_float16')
+
+# Initialize a queue to store episode states
+replay_queue = queue.Queue()
+
+class BestRewardLogger(Callback):
+    """Keras callback to log the best and average rewards."""
     def __init__(self):
-        self.reset()
+        super(BestRewardLogger, self).__init__()
+        self.best_reward = -float('inf')
 
-    def reset(self):
-        self.snake = [(GRID_WIDTH // 2, GRID_HEIGHT // 2)]
+    def on_episode_end(self, episode, logs=None):
+        reward = logs.get('episode_reward', 0)
+        if reward > self.best_reward:
+            self.best_reward = reward
+            tf.summary.scalar('Best Reward', data=self.best_reward, step=episode)
+        average_reward = logs.get('average_reward', 0)
+        epsilon = logs.get('epsilon', 0)
+        tf.summary.scalar('Average Reward', data=average_reward, step=episode)
+        tf.summary.scalar('Epsilon', data=epsilon, step=episode)
 
-        # Initializes with 3 cells
-        for _ in range(3):
-            self.snake.append((self.snake[0][0] - 1, self.snake[0][1]))
+    def on_train_batch_end(self, batch, logs=None):
+        tf.summary.scalar('Actor Loss', data=logs.get('actor_loss', 0), step=batch)
+        tf.summary.scalar('Critic Loss', data=logs.get('critic_loss', 0), step=batch)
 
-        self.direction = random.choice([(0, 1), (0, -1), (1, 0), (-1, 0)])
-        self.food = self.generate_food()
-        self.score = 0
-        self.game_over = False
-        self.moves = 0
 
-    def generate_food(self):
-        while True:
-            food = (random.randint(0, GRID_WIDTH - 1), random.randint(0, GRID_HEIGHT - 1))
-            if food not in self.snake:
-                return food
+def replay_worker():
+    while True:
+        episode_index = replay_queue.get()
+        if episode_index is None:
+            break
+        replay_episode(episode_index)
+        replay_queue.task_done()
 
-    def move(self, action):
-        self.moves += 1
+replay_thread = threading.Thread(target=replay_worker)
+replay_thread.start()
 
-        reward = 0
+def main():
+    """Main training loop for the DQN agent."""
+    # Set random seeds for reproducibility
+    np.random.seed(SEED)
+    tf.random.set_seed(SEED)
+    random.seed(SEED)
+    os.environ['PYTHONHASHSEED'] = str(SEED)
 
-        # 0: straight, 1: right, 2: left
-        if action == 1:
-            self.direction = (self.direction[1], -self.direction[0])
-        elif action == 2:
-            self.direction = (-self.direction[1], self.direction[0])
+    # Initialize environment
+    env = gym.make(ENV_NAME)
+    env.reset()
+    env.action_space.seed(SEED)
+    env.observation_space.seed(SEED)
+    state_dim = INPUT_SHAPE
+    action_size = ACTION_SIZE
+    agent = DQNAgent(INPUT_SHAPE, action_size, config)
 
-        new_head = ((self.snake[0][0] + self.direction[0]) % GRID_WIDTH,
-                    (self.snake[0][1] + self.direction[1]) % GRID_HEIGHT)
 
-        # Calculate distance to food before and after move
-        old_distance = ((self.snake[0][0] - self.food[0])**2 + (self.snake[0][1] - self.food[1])**2)**0.5
-        new_distance = ((new_head[0] - self.food[0])**2 + (new_head[1] - self.food[1])**2)**0.5
+    def custom_reward(state: dict) -> float:
+        import numpy as np
 
-        if new_head in self.snake[1:]:
-            self.game_over = True
-        
-        if new_head[0] == 0 or new_head[0] == GRID_WIDTH - 1 or new_head[1] == 0 or new_head[1] == GRID_HEIGHT - 1:
-            self.game_over = True
+        reward = 0.0
 
-        self.snake.insert(0, new_head)
-        self.snake.pop()
+        if state['ate_food']:
+            reward += 20.0  # Increased reward for eating food
 
-        # If the snake ate the food
-        if new_head == self.food:
-            reward = 10
-            self.score += 1
-            self.snake.append(self.snake[-1])
-            self.food = self.generate_food()
-            self.moves = 0  # Reset moves counter when food is eaten
-        elif self.game_over:
-            reward = -10
-        else:
-            reward = -0.1  # Small negative reward for each move
-        
-        # Reward for moving closer to food
-        old_distance = ((self.snake[1][0] - self.food[0])**2 + (self.snake[1][1] - self.food[1])**2)**0.5
-        new_distance = ((self.snake[0][0] - self.food[0])**2 + (self.snake[0][1] - self.food[1])**2)**0.5
-        if new_distance < old_distance:
-            reward += 0.1
-        
-        reward -= np.log(self.moves+1) # To prevent the snake from moving in circles
+        if state['done']:
+            reward -= 20.0  # Increased penalty for dying
+
+        # Optional Distance-Based Reward
+        head_pos = np.array(state['new_head'])
+        food_pos = np.array(state['food'])
+        distance = np.linalg.norm(head_pos - food_pos)
+        reward -= distance * 0.1  # Adjusted penalty based on distance
+
+        reward -= 0.05  # Step penalty to encourage efficiency
 
         return reward
 
-    def get_state(self):
-        head = self.snake[0]
-        point_l = ((head[0] - 1) % GRID_WIDTH, head[1])
-        point_r = ((head[0] + 1) % GRID_WIDTH, head[1])
-        point_u = (head[0], (head[1] - 1) % GRID_HEIGHT)
-        point_d = (head[0], (head[1] + 1) % GRID_HEIGHT)
-        
-        dir_l = self.direction == (-1, 0)
-        dir_r = self.direction == (1, 0)
-        dir_u = self.direction == (0, -1)
-        dir_d = self.direction == (0, 1)
+    env.env.set_reward_fn(custom_reward)
+    tqdm.write("Reward function updated.")
 
-        state = [
-            # Danger straight
-            (dir_r and self.is_collision(point_r)) or 
-            (dir_l and self.is_collision(point_l)) or 
-            (dir_u and self.is_collision(point_u)) or 
-            (dir_d and self.is_collision(point_d)),
+    # Initialize TensorBoard Logging
+    log_dir = "logs/dqn/" + time.strftime("%Y%m%d-%H%M%S")
+    summary_writer = tf.summary.create_file_writer(log_dir)
 
-            # Danger right
-            (dir_u and self.is_collision(point_r)) or 
-            (dir_d and self.is_collision(point_l)) or 
-            (dir_l and self.is_collision(point_u)) or 
-            (dir_r and self.is_collision(point_d)),
+    # Initialize Best Reward
+    best_reward = -np.inf
 
-            # Danger left
-            (dir_d and self.is_collision(point_r)) or 
-            (dir_u and self.is_collision(point_l)) or 
-            (dir_r and self.is_collision(point_u)) or 
-            (dir_l and self.is_collision(point_d)),
-            
-            # Move direction
-            dir_l,
-            dir_r,
-            dir_u,
-            dir_d,
-            
-            # Food location 
-            self.food[0] < self.snake[0][0],  # food left
-            self.food[0] > self.snake[0][0],  # food right
-            self.food[1] < self.snake[0][1],  # food up
-            self.food[1] > self.snake[0][1]   # food down
-            ]
+    # Initialize Replay Steps Record
+    all_episode_states = []
 
-        return np.array(state, dtype=int)
-
-    def is_collision(self, pt=None):
-        if pt is None:
-            pt = self.snake[0]
-        return pt in self.snake[1:]
-
-    def draw(self, game_number=None, epsilon=None):
-        screen.fill(BLACK)
-        for pt in self.snake:
-            pygame.draw.rect(screen, GREEN, pygame.Rect(pt[0]*GRID_SIZE, pt[1]*GRID_SIZE, GRID_SIZE, GRID_SIZE))
-        pygame.draw.rect(screen, RED, pygame.Rect(self.food[0]*GRID_SIZE, self.food[1]*GRID_SIZE, GRID_SIZE, GRID_SIZE))
-        if game_number is not None and epsilon is not None:
-            self.draw_info(game_number, epsilon)
-        pygame.display.flip()
-
-    def draw_info(self, game_number, epsilon):
-        font = pygame.font.Font(None, 36)
-        text = font.render(f"Game: {game_number} | Score: {self.score} | Epsilon: {epsilon:.2f}", True, WHITE)
-        screen.blit(text, (10, 10))
-
-def train_snake():
-    # Load configuration
-    config = load_config('config/snake_config.yaml')
-    
-    # Initialize game
-    game = SnakeGame()
-    
-    # Create model
-    model = create_model(config)
-    
-    # Create target model
-    target_model = create_model(config)
-    target_model.set_weights(model.get_weights())
-    
-    # Initialize replay memory
-    memory = deque(maxlen=config['training-snake']['max_memory'])
-    
-    # Training parameters
-    n_games = config['training-snake']['n_games']
-    batch_size = config['training-snake']['batch_size']
-    epsilon = config['training-snake']['epsilon']
-    epsilon_min = config['training-snake']['epsilon_min']
-    epsilon_decay = config['training-snake']['epsilon_decay']
-    gamma = config['training-snake']['gamma']
-    
-    # Callbacks for training
-    callbacks = create_callbacks(config)
-
-    # Training loop
-    for game_num in tqdm(range(n_games)):
-        game.reset()
+    for episode in tqdm(range(1, NUM_EPISODES + 1), desc="Training Episodes"):
+        state, _ = env.reset()
+        state = np.array(state).flatten()
+        episode_reward = 0
         done = False
-        
+        step = 0
+        episode_states = [env.get_full_state()]
+
         while not done:
-            state = game.get_state()
-            
-            # Epsilon-greedy action selection
-            if random.random() < epsilon:
-                action = random.randint(0, 2)
-            else:
-                q_values = model.predict(np.array([state]), verbose=0)
-                action = np.argmax(q_values[0])
-            
-            # Perform action
-            reward = game.move(action)
-            next_state = game.get_state()
-            done = game.game_over
+            action = agent.act(state)
+            next_state, reward, done, _ = env.step(action)
+            next_state = np.array(next_state).flatten()
 
-            # Store experience in memory
-            memory.append((state, action, reward, next_state, done))
-            
-            # Train on a batch of experiences
-            if len(memory) >= batch_size:
-                batch = random.sample(memory, batch_size)
-                states = np.array([experience[0] for experience in batch])
-                actions = np.array([experience[1] for experience in batch])
-                rewards = np.array([experience[2] for experience in batch])
-                next_states = np.array([experience[3] for experience in batch])
-                dones = np.array([experience[4] for experience in batch])
-                
-                # Compute target Q-values
-                target_q_values = target_model.predict(next_states, verbose=0)
-                max_target_q_values = np.max(target_q_values, axis=1)
-                target_q_values = rewards + gamma * max_target_q_values * (1 - dones)
-                
-                # Compute current Q-values and update
-                current_q_values = model.predict(states, verbose=0)
-                current_q_values[np.arange(batch_size), actions] = target_q_values
-                
-                # Train the model
-                model.fit(states, current_q_values, verbose=0, callbacks=callbacks)
+            episode_states.append(env.get_full_state())
+
+            agent.remember(state, action, reward, next_state, done)
+            state = next_state
+            episode_reward += reward
+            step += 1
+
+            if done:
+                all_episode_states.append(episode_states)
+                agent.update_target_model()
+                break
+
+        for _ in tqdm(range(10), desc="Replaying", leave=False):
+            agent.replay()
         
-        # Decay epsilon
-        epsilon = max(epsilon_min, epsilon * epsilon_decay)
-        
-        # Print game statistics
-        if game_num % 100 == 0:
-            print(f"\nGame {game_num}, Score: {game.score}, Epsilon: {epsilon:.2f}")
-    
-    # Save the trained model
-    model.save('snake_model.h5')
-    print("Training completed. Model saved as 'snake_model.h5'")
 
-def play_game():
-    game = SnakeGame()
-    model = tf.keras.models.load_model('snake_model.h5')
+        # Log episode reward and other metrics
+        with summary_writer.as_default():
+            tf.summary.scalar('Episode Reward', episode_reward, step=episode)
+            tf.summary.scalar('Epsilon', agent.epsilon, step=episode)
 
-    while not game.game_over:
-        state = game.get_state()
-        prediction = model(tf.convert_to_tensor(state.reshape((1, -1)), dtype=tf.float32))
-        action = np.argmax(prediction[0])
+        if episode_reward > best_reward:
+            best_reward = episode_reward
+            agent.save_models()
+            tqdm.write(f"New best reward {best_reward} at episode {episode}!")
 
-        game.move(action)
-        game.draw()
+        if not os.path.exists('states'):
+            os.makedirs('states')
+        with open('states/all_episode_states.pkl', 'wb') as f:
+            pickle.dump(all_episode_states, f)
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                game.game_over = True
+        # If the first initial training process (10% of population)
+        if episode >= 190:
+            replay_queue.put(episode-1)
 
-        pygame.time.delay(75)
+        tqdm.write(f"Episode {episode} - Reward {episode_reward} - Steps {step} - Epsilon {agent.epsilon:.4f}")
 
-    print(f"Game Over. Final Score: {game.score}")
+    # Save the trained models after training
+    agent.save_models()
+
+    # Close the environment
+    env.close()
+
+    # Close TensorBoard Summary Writer
+    summary_writer.close()
+
+
+def test():
+    """Test the trained agent."""
+    # Load configuration
+    config = load_config('config/snake_game_config.yaml')
+
+    # Initialize environment
+    env = gym.make(ENV_NAME, render_mode="human")
+    env.action_space.seed(SEED)
+    env.observation_space.seed(SEED)
+    state, _ = env.reset()
+    state = np.reshape(state, [1, INPUT_SHAPE])
+    action_size = ACTION_SIZE
+
+    # Load trained models
+    agent = DQNAgent(INPUT_SHAPE, action_size, config)
+    agent.load_models()
+    done = False
+    total_reward = 0
+    while not done:
+        env.render()
+        action = agent.act(state)
+        one_hot_action = np.zeros(action_size)
+        one_hot_action[action] = 1
+        next_state, reward, done, _ = env.step(one_hot_action)
+        next_state = np.reshape(next_state, [1, INPUT_SHAPE])
+        state = next_state
+        total_reward += reward
+    tqdm.write(f"Test Run Reward: {total_reward}")
+    env.close()
+
 
 if __name__ == "__main__":
-    train_snake()
-    play_game()
+    try:
+        main()
+    except KeyboardInterrupt:
+        tqdm.write("Training interrupted by user.")
+    finally:
+        replay_queue.put(None)
+        replay_thread.join()

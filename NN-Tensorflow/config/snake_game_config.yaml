@@ -1,0 +1,22 @@
+
+training:
+  optimizer: adam
+  loss: huber_loss
+  metrics: [mae]
+  num_episodes: 10000
+  learning_rate: 0.001
+  buffer_size: 100000
+  batch_size: 128
+  gamma: 0.99
+  tau: 0.001
+  seed: 42
+  epsilon_start: 1
+  epsilon_min: 0.01
+  epsilon_decay: 0.995
+  train_start: 10000 # 10% of the buffer size
+
+data:
+  env_name: SnakeGame-v0
+  input_shape: 6 # Observation space: [angle to food, alive, direction, danger_front, danger_left, danger_right]
+  action_size: 3 # Action space: [forward, left, right]
+  seed: 42

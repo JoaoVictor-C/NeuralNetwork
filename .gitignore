@@ -4,3 +4,7 @@ obj/Debug/net8.0/NeuralNetwork.AssemblyInfo.cs
 obj/Debug/net8.0/NeuralNetwork.AssemblyInfo.cs
 /NN-Tensorflow/checkpoints
 src/models/model_0.pkl
+/.venv
+/NN-Tensorflow/logs
+/NN-Tensorflow/logs
+*.v2
